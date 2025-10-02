@@ -3,171 +3,314 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GitHub 聊天室</title>
+    <title>Supabase实时聊天室</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* 样式保持不变，与之前相同 */
         :root {
-            --primary-color: #238636;
-            --bg-color: #f6f8fa;
-            --text-color: #24292f;
-            --message-bg: #ffffff;
-            --user-message-bg: #ddf4ff;
-            --border-color: #d0d7de;
-            --shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
-        }
-
-        .dark-theme {
-            --primary-color: #3fb950;
-            --bg-color: #0d1117;
-            --text-color: #f0f6fc;
-            --message-bg: #161b22;
-            --user-message-bg: #1c6b48;
-            --border-color: #30363d;
-            --shadow: 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.7);
+            --primary: #3ECF8E;
+            --primary-dark: #2dbd7e;
+            --secondary: #6C757D;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --bg-light: #f8f9fa;
+            --bg-dark: #1a1d29;
+            --card-light: #ffffff;
+            --card-dark: #252836;
+            --text-light: #333333;
+            --text-dark: #e4e6eb;
+            --border-light: #e1e5e9;
+            --border-dark: #3a3f50;
+            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            --radius: 12px;
         }
 
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+            transition: background-color 0.3s, color 0.3s;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            transition: all 0.3 ease;
-            height: 100vh;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(135deg, #3ECF8E 0%, #3B82F6 100%);
+            color: var(--text-light);
+            min-height: 100vh;
             display: flex;
-            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
         }
 
-        header {
-            padding: 16px;
-            border-bottom: 1px solid var(--border-color);
+        body.dark-mode {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: var(--text-dark);
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--card-light);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .dark-mode .card {
+            background: var(--card-dark);
+        }
+
+        .header {
+            background: var(--primary);
+            color: white;
+            padding: 20px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            background-color: var(--message-bg);
+        }
+
+        .dark-mode .header {
+            background: var(--primary-dark);
         }
 
         .logo {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-weight: 600;
+            gap: 10px;
+            font-size: 1.5rem;
+            font-weight: 700;
         }
 
         .theme-toggle {
-            background: none;
-            border: 1px solid var(--border-color);
-            color: var(--text-color);
-            padding: 6px 12px;
-            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
             cursor: pointer;
-            transition: all 0.2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .theme-toggle:hover {
-            background-color: var(--border-color);
+        .info-panel {
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            height: 100%;
+        }
+
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 8px;
+            background: rgba(62, 207, 142, 0.1);
+        }
+
+        .dark-mode .info-item {
+            background: rgba(62, 207, 142, 0.15);
+        }
+
+        .info-item i {
+            color: var(--primary);
+            font-size: 1.2rem;
+        }
+
+        .user-info {
+            margin-top: auto;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(62, 207, 142, 0.1);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .dark-mode .user-info {
+            background: rgba(62, 207, 142, 0.15);
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
         }
 
         .chat-container {
-            flex: 1;
             display: flex;
             flex-direction: column;
-            max-width: 800px;
-            margin: 0 auto;
-            width: 100%;
-            padding: 16px;
+            height: 600px;
+        }
+
+        .chat-header {
+            padding: 15px 20px;
+            border-bottom: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .dark-mode .chat-header {
+            border-bottom-color: var(--border-dark);
+        }
+
+        .chat-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+
+        .online-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.9rem;
+            color: var(--success);
+        }
+
+        .online-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--success);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
         }
 
         .messages-container {
             flex: 1;
+            padding: 20px;
             overflow-y: auto;
-            padding: 16px;
-            margin-bottom: 16px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background-color: var(--message-bg);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
         }
 
         .message {
-            margin-bottom: 16px;
-            padding: 12px;
-            border-radius: 6px;
             max-width: 80%;
-            word-wrap: break-word;
-            box-shadow: var(--shadow);
+            padding: 12px 16px;
+            border-radius: 18px;
+            position: relative;
             animation: fadeIn 0.3s ease;
         }
 
         .user-message {
-            background-color: var(--user-message-bg);
-            margin-left: auto;
-            border-bottom-right-radius: 2px;
+            align-self: flex-end;
+            background: var(--primary);
+            color: white;
+            border-bottom-right-radius: 4px;
         }
 
-        .bot-message {
-            background-color: var(--message-bg);
-            border: 1px solid var(--border-color);
-            border-bottom-left-radius: 2px;
+        .other-user-message {
+            align-self: flex-start;
+            background: var(--card-light);
+            border: 1px solid var(--border-light);
+            border-bottom-left-radius: 4px;
+        }
+
+        .dark-mode .other-user-message {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        .message-header {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+            font-size: 0.8rem;
+            opacity: 0.8;
         }
 
         .message-time {
             font-size: 0.75rem;
-            color: #656d76;
-            margin-top: 4px;
+            opacity: 0.7;
+            margin-top: 5px;
             text-align: right;
         }
 
         .input-container {
+            padding: 15px 20px;
+            border-top: 1px solid var(--border-light);
             display: flex;
-            gap: 8px;
+            gap: 10px;
+        }
+
+        .dark-mode .input-container {
+            border-top-color: var(--border-dark);
         }
 
         .message-input {
             flex: 1;
-            padding: 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background-color: var(--message-bg);
-            color: var(--text-color);
-            resize: none;
-            height: 60px;
+            padding: 12px 16px;
+            border: 1px solid var(--border-light);
+            border-radius: 24px;
+            outline: none;
+            font-size: 1rem;
+            background: var(--card-light);
+            color: var(--text-light);
+        }
+
+        .dark-mode .message-input {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+            color: var(--text-dark);
         }
 
         .message-input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(35, 134, 54, 0.3);
+            border-color: var(--primary);
         }
 
         .send-button {
-            background-color: var(--primary-color);
+            background: var(--primary);
             color: white;
             border: none;
-            border-radius: 6px;
-            padding: 0 20px;
+            width: 46px;
+            height: 46px;
+            border-radius: 50%;
             cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.2;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s;
         }
 
         .send-button:hover {
-            background-color: #2ea043;
+            background: var(--primary-dark);
         }
 
-        .send-button:disabled {
-            background-color: #656d76;
-            cursor: not-allowed;
-        }
-
-        footer {
+        .footer {
             text-align: center;
-            padding: 16px;
-            font-size: 0.875rem;
-            color: #656d76;
-            border-top: 1px solid var(--border-color);
+            padding: 15px;
+            font-size: 0.85rem;
+            opacity: 0.8;
+            border-top: 1px solid var(--border-light);
+        }
+
+        .dark-mode .footer {
+            border-top-color: var(--border-dark);
         }
 
         @keyframes fadeIn {
@@ -175,65 +318,276 @@
             to { opacity: 1; transform: translateY(0); }
         }
 
-        @media (max-width: 768px) {
-            .message {
-                max-width: 90%;
-            }
-            
-            .chat-container {
-                padding: 8px;
-            }
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 16px;
+            background: var(--card-light);
+            border: 1px solid var(--border-light);
+            border-radius: 18px;
+            width: fit-content;
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+
+        .dark-mode .typing-indicator {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-light);
+            border-radius: 50%;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .dark-mode .typing-dot {
+            background: var(--text-dark);
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typingAnimation {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
+        }
+
+        .login-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            padding: 20px;
+        }
+
+        .login-input {
+            padding: 12px 16px;
+            border: 1px solid var(--border-light);
+            border-radius: 8px;
+            outline: none;
+            font-size: 1rem;
+            background: var(--card-light);
+            color: var(--text-light);
+        }
+
+        .dark-mode .login-input {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+            color: var(--text-dark);
+        }
+
+        .login-button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+        .login-button:hover {
+            background: var(--primary-dark);
+        }
+
+        .user-list {
+            padding: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+
+        .user-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            margin-bottom: 5px;
+        }
+
+        .user-item:hover {
+            background: rgba(62, 207, 142, 0.1);
+        }
+
+        .dark-mode .user-item:hover {
+            background: rgba(62, 207, 142, 0.15);
+        }
+
+        .user-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.8rem;
+        }
+        
+        .status-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--success);
+            margin-left: auto;
+        }
+        
+        .offline {
+            background: var(--secondary);
         }
     </style>
 </head>
 <body>
-    <header>
-        <div class="logo">
-            <svg height="24" viewBox="0 0 16 16" width="24" fill="currentColor">
-                <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
-            </svg>
-            <span>GitHub 聊天室</span>
+    <div class="container">
+        <!-- 信息面板 -->
+        <div class="card">
+            <div class="header">
+                <div class="logo">
+                    <i class="fas fa-comments"></i>
+                    <span>Supabase聊天室</span>
+                </div>
+                <button class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+            <div class="info-panel">
+                <div class="info-item">
+                    <i class="fas fa-bolt"></i>
+                    <div>
+                        <h3>实时通信</h3>
+                        <p>使用Supabase实现实时消息同步</p>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-users"></i>
+                    <div>
+                        <h3>多设备支持</h3>
+                        <p>在不同设备间实时聊天</p>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <i class="fas fa-database"></i>
+                    <div>
+                        <h3>PostgreSQL</h3>
+                        <p>基于强大的关系型数据库</p>
+                    </div>
+                </div>
+                
+                <div class="user-list" id="userList">
+                    <h4>在线用户</h4>
+                    <!-- 在线用户列表将在这里显示 -->
+                </div>
+                
+                <div class="user-info" id="userInfo">
+                    <!-- 用户信息将在这里显示 -->
+                </div>
+            </div>
         </div>
-        <button class="theme-toggle" id="themeToggle">切换主题</button>
-    </header>
 
-    <div class="chat-container">
-        <div class="messages-container" id="messagesContainer">
-            <!-- 消息将在这里动态添加 -->
-        </div>
-        <div class="input-container">
-            <textarea class="message-input" id="messageInput" placeholder="输入消息..." rows="1"></textarea>
-            <button class="send-button" id="sendButton">发送</button>
+        <!-- 聊天面板 -->
+        <div class="card chat-container">
+            <div class="chat-header">
+                <div class="chat-title">公共聊天室</div>
+                <div class="online-indicator">
+                    <div class="online-dot"></div>
+                    <span id="onlineCount">1 人在线</span>
+                </div>
+            </div>
+            <div class="messages-container" id="messagesContainer">
+                <!-- 消息将在这里动态生成 -->
+            </div>
+            <div class="input-container">
+                <input type="text" class="message-input" id="messageInput" placeholder="输入消息..." disabled>
+                <button class="send-button" id="sendButton" disabled>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            <div class="footer">
+                <p>使用Supabase实时数据库 | 支持多设备聊天</p>
+            </div>
         </div>
     </div>
 
-    <footer>
-        <p>这是一个静态聊天页面，使用 localStorage 保存聊天记录 | 部署在 GitHub Pages</p>
-    </footer>
+    <!-- 登录模态框 -->
+    <div id="loginModal" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div class="card" style="width: 90%; max-width: 400px;">
+            <div class="header">
+                <div class="logo">
+                    <i class="fas fa-user"></i>
+                    <span>加入聊天室</span>
+                </div>
+            </div>
+            <div class="login-container">
+                <input type="text" class="login-input" id="usernameInput" placeholder="请输入您的用户名" maxlength="20">
+                <button class="login-button" id="loginButton">加入聊天</button>
+            </div>
+        </div>
+    </div>
 
     <script>
-        // DOM 元素
+        // Supabase配置 - 替换为您自己的配置
+        const SUPABASE_URL = 'https://rudtcwlggkaxykrhhdsn.supabase.co'; // 替换为您的Supabase项目URL
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1ZHRjd2xnZ2theHlrcmhoZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMzkyNjEsImV4cCI6MjA3NDkxNTI2MX0.Tb1zZvaRS2rppM1_7ka4WgpIh_PFxc4bLVHPG9T0AKg'; // 替换为您的Supabase anon key
+        
+        // 初始化Supabase客户端
+        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+        // DOM元素
         const messagesContainer = document.getElementById('messagesContainer');
         const messageInput = document.getElementById('messageInput');
         const sendButton = document.getElementById('sendButton');
         const themeToggle = document.getElementById('themeToggle');
+        const loginModal = document.getElementById('loginModal');
+        const usernameInput = document.getElementById('usernameInput');
+        const loginButton = document.getElementById('loginButton');
+        const userInfo = document.getElementById('userInfo');
+        const userList = document.getElementById('userList');
+        const onlineCount = document.getElementById('onlineCount');
+
+        // 全局变量
+        let currentUser = null;
+        let userId = null;
+        let onlineUsers = {};
+        let heartbeatInterval;
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
-            loadMessages();
             setupEventListeners();
-            addBotMessage('欢迎来到 GitHub 聊天室！这是一个静态页面，所有消息都保存在您的浏览器本地存储中。');
+            
+            // 检查保存的主题偏好
+            const savedTheme = localStorage.getItem('chatTheme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
+            }
+            
+            // 加载历史消息
+            loadMessages();
+            // 更新在线用户
+            updateOnlineUsers();
         });
 
         // 设置事件监听器
         function setupEventListeners() {
-            // 发送按钮点击事件
+            // 发送消息
             sendButton.addEventListener('click', sendMessage);
             
-            // 输入框回车事件
-            messageInput.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
+            // 回车发送消息
+            messageInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
                     sendMessage();
                 }
             });
@@ -241,142 +595,305 @@
             // 主题切换
             themeToggle.addEventListener('click', toggleTheme);
             
-            // 自动调整输入框高度
-            messageInput.addEventListener('input', autoResizeTextarea);
+            // 登录
+            loginButton.addEventListener('click', login);
+            usernameInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    login();
+                }
+            });
+        }
+
+        // 用户登录
+        async function login() {
+            const username = usernameInput.value.trim();
+            if (!username) {
+                alert('请输入用户名');
+                return;
+            }
+            
+            currentUser = username;
+            userId = generateUserId();
+            
+            // 启用聊天功能
+            messageInput.disabled = false;
+            sendButton.disabled = false;
+            
+            // 隐藏登录模态框
+            loginModal.style.display = 'none';
+            
+            // 显示用户信息
+            userInfo.innerHTML = `
+                <div class="avatar">${username.charAt(0).toUpperCase()}</div>
+                <div>
+                    <div><strong>${username}</strong></div>
+                    <div style="font-size: 0.8rem;">在线</div>
+                </div>
+            `;
+            
+            // 设置用户在线状态
+            await setUserOnline();
+            
+            // 开始心跳机制
+            startHeartbeat();
+            
+            // 监听实时消息
+            listenToMessages();
+            
+            // 监听在线用户变化
+            listenToOnlineUsers();
+            
+            // 添加欢迎消息
+            addSystemMessage(`欢迎 ${username} 加入聊天室！`);
+        }
+
+        // 生成用户ID
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // 设置用户在线状态
+        async function setUserOnline() {
+            const userData = {
+                id: userId,
+                username: currentUser,
+                last_seen: new Date().toISOString(),
+                is_online: true
+            };
+            
+            // 使用Supabase的upsert功能插入或更新用户
+            const { error } = await supabase
+                .from('online_users')
+                .upsert(userData);
+            
+            if (error) {
+                console.error('设置用户在线状态错误:', error);
+            }
+        }
+
+        // 开始心跳机制
+        function startHeartbeat() {
+            // 每30秒更新一次最后活动时间
+            heartbeatInterval = setInterval(async () => {
+                if (currentUser) {
+                    const { error } = await supabase
+                        .from('online_users')
+                        .update({ 
+                            last_seen: new Date().toISOString(),
+                            is_online: true
+                        })
+                        .eq('id', userId);
+                    
+                    if (error) {
+                        console.error('更新用户活动时间错误:', error);
+                    }
+                }
+            }, 30000);
+            
+            // 页面关闭时设置离线
+            window.addEventListener('beforeunload', async () => {
+                if (currentUser) {
+                    await supabase
+                        .from('online_users')
+                        .update({ is_online: false })
+                        .eq('id', userId);
+                }
+            });
+        }
+
+        // 监听消息
+        function listenToMessages() {
+            // 使用Supabase的实时订阅功能监听新消息
+            supabase
+                .channel('messages')
+                .on('postgres_changes', 
+                    { event: 'INSERT', schema: 'public', table: 'messages' }, 
+                    (payload) => {
+                        displayMessage(payload.new);
+                    }
+                )
+                .subscribe();
+        }
+
+        // 监听在线用户
+        function listenToOnlineUsers() {
+            // 使用Supabase的实时订阅功能监听在线用户变化
+            supabase
+                .channel('online_users')
+                .on('postgres_changes', 
+                    { event: '*', schema: 'public', table: 'online_users' }, 
+                    async (payload) => {
+                        // 重新获取在线用户列表
+                        await updateOnlineUsers();
+                    }
+                )
+                .subscribe();
+        }
+
+        // 更新在线用户列表
+        async function updateOnlineUsers() {
+            // 获取在线用户
+            const { data: users, error } = await supabase
+                .from('online_users')
+                .select('*')
+                .eq('is_online', true);
+            
+            if (error) {
+                console.error('获取在线用户错误:', error);
+                return;
+            }
+            
+            // 过滤掉5分钟内没有活动的用户
+            const activeUsers = users.filter(user => {
+                const lastSeen = new Date(user.last_seen);
+                const now = new Date();
+                return (now - lastSeen) < 5 * 60 * 1000; // 5分钟
+            });
+            
+            // 更新在线用户列表
+            onlineUsers = {};
+            activeUsers.forEach(user => {
+                onlineUsers[user.id] = user;
+            });
+            
+            // 更新UI
+            updateOnlineUsersUI(activeUsers);
+        }
+
+        // 更新在线用户UI
+        function updateOnlineUsersUI(users) {
+            let userListHTML = '<h4>在线用户</h4>';
+            
+            if (users.length === 0) {
+                userListHTML += '<p>暂无在线用户</p>';
+            } else {
+                users.forEach(user => {
+                    userListHTML += `
+                        <div class="user-item">
+                            <div class="user-avatar">${user.username.charAt(0).toUpperCase()}</div>
+                            <div>${user.username}</div>
+                            <div class="status-indicator"></div>
+                        </div>
+                    `;
+                });
+            }
+            
+            userList.innerHTML = userListHTML;
+            onlineCount.textContent = `${users.length} 人在线`;
         }
 
         // 发送消息
-        function sendMessage() {
-            const message = messageInput.value.trim();
-            if (!message) return;
+        async function sendMessage() {
+            const messageText = messageInput.value.trim();
+            if (!messageText || !currentUser) return;
             
-            // 添加用户消息
-            addMessage(message, 'user');
+            const message = {
+                message_text: messageText,
+                username: currentUser,
+                user_id: userId,
+                created_at: new Date().toISOString()
+            };
+            
+            // 保存到Supabase
+            const { error } = await supabase
+                .from('messages')
+                .insert([message]);
+            
+            if (error) {
+                console.error('发送消息错误:', error);
+                alert('发送消息失败，请重试');
+                return;
+            }
             
             // 清空输入框
             messageInput.value = '';
-            autoResizeTextarea();
-            
-            // 模拟机器人回复（延迟）
-            setTimeout(() => {
-                const responses = [
-                    '收到您的消息了！',
-                    '这是一个很棒的聊天应用！',
-                    '您可以在 GitHub Pages 上部署这个页面。',
-                    '感谢您的消息！',
-                    '这个聊天界面使用纯 HTML、CSS 和 JavaScript 构建。'
-                ];
-                const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-                addMessage(randomResponse, 'bot');
-            }, 1000);
         }
 
-        // 添加消息到聊天界面
-        function addMessage(text, sender) {
+        // 加载历史消息
+        async function loadMessages() {
+            const { data: messages, error } = await supabase
+                .from('messages')
+                .select('*')
+                .order('created_at', { ascending: true })
+                .limit(50);
+            
+            if (error) {
+                console.error('加载消息错误:', error);
+                return;
+            }
+            
+            // 显示消息
+            messages.forEach(message => {
+                displayMessage(message, true);
+            });
+        }
+
+        // 显示消息
+        function displayMessage(message, isHistory = false) {
+            // 检查是否已经显示过这条消息（避免重复显示）
+            const existingMessage = document.querySelector(`[data-message-id="${message.id}"]`);
+            if (existingMessage) return;
+            
             const messageDiv = document.createElement('div');
-            messageDiv.className = `message ${sender}-message`;
+            messageDiv.setAttribute('data-message-id', message.id);
             
-            const messageText = document.createElement('div');
-            messageText.textContent = text;
+            if (message.user_id === userId) {
+                // 自己的消息
+                messageDiv.className = 'message user-message';
+                messageDiv.innerHTML = `
+                    <div>${message.message_text}</div>
+                    <div class="message-time">${formatTime(message.created_at)}</div>
+                `;
+            } else {
+                // 其他用户的消息
+                messageDiv.className = 'message other-user-message';
+                messageDiv.innerHTML = `
+                    <div class="message-header">
+                        <span>${message.username}</span>
+                    </div>
+                    <div>${message.message_text}</div>
+                    <div class="message-time">${formatTime(message.created_at)}</div>
+                `;
+            }
             
-            const messageTime = document.createElement('div');
-            messageTime.className = 'message-time';
-            messageTime.textContent = getCurrentTime();
-            
-            messageDiv.appendChild(messageText);
-            messageDiv.appendChild(messageTime);
             messagesContainer.appendChild(messageDiv);
             
-            // 滚动到底部
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            
-            // 保存消息到本地存储
-            saveMessage(text, sender);
-        }
-
-        // 添加机器人消息（不保存到历史记录）
-        function addBotMessage(text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'message bot-message';
-            
-            const messageText = document.createElement('div');
-            messageText.textContent = text;
-            
-            const messageTime = document.createElement('div');
-            messageTime.className = 'message-time';
-            messageTime.textContent = getCurrentTime();
-            
-            messageDiv.appendChild(messageText);
-            messageDiv.appendChild(messageTime);
-            messagesContainer.appendChild(messageDiv);
-            
-            // 滚动到底部
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // 获取当前时间
-        function getCurrentTime() {
-            const now = new Date();
-            return `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-        }
-
-        // 保存消息到本地存储
-        function saveMessage(text, sender) {
-            let messages = JSON.parse(localStorage.getItem('githubChatMessages')) || [];
-            messages.push({
-                text,
-                sender,
-                time: new Date().toISOString()
-            });
-            localStorage.setItem('githubChatMessages', JSON.stringify(messages));
-        }
-
-        // 从本地存储加载消息
-        function loadMessages() {
-            const messages = JSON.parse(localStorage.getItem('githubChatMessages')) || [];
-            messages.forEach(msg => {
-                const messageDiv = document.createElement('div');
-                messageDiv.className = `message ${msg.sender}-message`;
-                
-                const messageText = document.createElement('div');
-                messageText.textContent = msg.text;
-                
-                const messageTime = document.createElement('div');
-                messageTime.className = 'message-time';
-                
-                const time = new Date(msg.time);
-                messageTime.textContent = `${time.getHours().toString().padStart(2, '0')}:${time.getMinutes().toString().padStart(2, '0')}`;
-                
-                messageDiv.appendChild(messageText);
-                messageDiv.appendChild(messageTime);
-                messagesContainer.appendChild(messageDiv);
-            });
-            
-            // 滚动到底部
-            if (messages.length > 0) {
+            // 如果不是历史消息，滚动到底部
+            if (!isHistory) {
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
             }
         }
 
-        // 自动调整输入框高度
-        function autoResizeTextarea() {
-            messageInput.style.height = 'auto';
-            messageInput.style.height = (messageInput.scrollHeight) + 'px';
+        // 添加系统消息
+        function addSystemMessage(text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message other-user-message';
+            messageDiv.style.backgroundColor = 'rgba(108, 117, 125, 0.2)';
+            messageDiv.style.textAlign = 'center';
+            messageDiv.style.maxWidth = '100%';
+            messageDiv.innerHTML = `
+                <div><i>${text}</i></div>
+                <div class="message-time">${formatTime(new Date().toISOString())}</div>
+            `;
+            
+            messagesContainer.appendChild(messageDiv);
+            
+            // 滚动到底部
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 格式化时间
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
         }
 
         // 切换主题
         function toggleTheme() {
-            document.body.classList.toggle('dark-theme');
-            const isDark = document.body.classList.contains('dark-theme');
-            localStorage.setItem('githubChatTheme', isDark ? 'dark' : 'light');
-            themeToggle.textContent = isDark ? '浅色模式' : '深色模式';
-        }
-
-        // 检查保存的主题偏好
-        const savedTheme = localStorage.getItem('githubChatTheme');
-        if (savedTheme === 'dark') {
-            document.body.classList.add('dark-theme');
-            themeToggle.textContent = '浅色模式';
+            document.body.classList.toggle('dark-mode');
+            const isDark = document.body.classList.contains('dark-mode');
+            localStorage.setItem('chatTheme', isDark ? 'dark' : 'light');
+            themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
         }
     </script>
 </body>
