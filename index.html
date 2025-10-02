@@ -93,7 +93,7 @@
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.9rem;
-            transition: background 0.3s;
+            transition: background 0.3;
         }
         
         .header-btn:hover {
@@ -545,6 +545,74 @@
             100% { transform: rotate(360deg); }
         }
         
+        /* 新增emoji选择器样式 */
+        .emoji-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            transition: background 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+        }
+        
+        .emoji-btn:hover {
+            background: #f0f0f0;
+        }
+        
+        .emoji-picker {
+            position: absolute;
+            bottom: 70px;
+            left: 15px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+            padding: 15px;
+            width: 320px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 100;
+            display: none;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .emoji-picker.show {
+            display: flex;
+        }
+        
+        .emoji-item {
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 6px;
+            transition: background 0.2s;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .emoji-item:hover {
+            background: #f0f0f0;
+        }
+        
+        .emoji-category {
+            width: 100%;
+            font-weight: 600;
+            color: #4a6ee0;
+            margin-top: 10px;
+            margin-bottom: 5px;
+            font-size: 0.9rem;
+        }
+        
         /* 滚动条样式 */
         .chat-messages::-webkit-scrollbar,
         .friends-list::-webkit-scrollbar {
@@ -668,6 +736,12 @@
             .connection-status {
                 padding: 8px 15px;
             }
+            
+            .emoji-picker {
+                width: 280px;
+                left: 10px;
+                bottom: 65px;
+            }
         }
         
         @media (max-width: 480px) {
@@ -693,6 +767,12 @@
                 height: 44px;
                 padding: 8px 14px;
                 font-size: 0.85rem;
+            }
+            
+            .emoji-picker {
+                width: 260px;
+                left: 5px;
+                bottom: 60px;
             }
         }
         
@@ -793,10 +873,6 @@
             </div>
             
             <div class="chat-content">
-                <button class="toggle-sidebar" id="toggleSidebar">
-                    <span>☰</span> 好友
-                </button>
-                
                 <div class="friends-sidebar hidden" id="friendsSidebar">
                     <div class="friends-header">
                         <span>好友列表</span>
@@ -831,8 +907,13 @@
                     </div>
                     
                     <div class="chat-input-container">
+                        <button class="emoji-btn" id="emojiBtn">😊</button>
                         <input type="text" class="chat-input" id="messageInput" placeholder="请先选择好友..." disabled>
                         <button class="send-btn" id="sendBtn" disabled>发送</button>
+                    </div>
+                    
+                    <div class="emoji-picker" id="emojiPicker">
+                        <!-- Emoji选择器内容将在这里动态生成 -->
                     </div>
                 </div>
             </div>
@@ -866,7 +947,6 @@
         const friendsBtn = document.getElementById('friendsBtn');
         const logoutBtn = document.getElementById('logoutBtn');
         const friendsSidebar = document.getElementById('friendsSidebar');
-        const toggleSidebar = document.getElementById('toggleSidebar');
         const closeSidebar = document.getElementById('closeSidebar');
         const friendCodeText = document.getElementById('friendCodeText');
         const copyFriendCodeBtn = document.getElementById('copyFriendCodeBtn');
@@ -879,6 +959,8 @@
         const sendBtn = document.getElementById('sendBtn');
         const statusDot = document.getElementById('statusDot');
         const statusText = document.getElementById('statusText');
+        const emojiBtn = document.getElementById('emojiBtn');
+        const emojiPicker = document.getElementById('emojiPicker');
         
         // 全局变量
         let supabase = null;
@@ -890,6 +972,7 @@
         let friends = [];
         let isSendingMessage = false;
         let pendingMessages = new Map(); // 存储临时消息ID与数据库ID的映射
+        let isEmojiPickerOpen = false;
         
         // 初始化
         document.addEventListener('DOMContentLoaded', function() {
@@ -915,8 +998,7 @@
             // 设置好友按钮事件
             friendsBtn.addEventListener('click', toggleFriendsSidebar);
             
-            // 设置侧边栏切换事件
-            toggleSidebar.addEventListener('click', toggleFriendsSidebar);
+            // 设置侧边栏关闭事件
             closeSidebar.addEventListener('click', toggleFriendsSidebar);
             
             // 设置好友码复制事件
@@ -925,8 +1007,23 @@
             // 设置添加好友事件
             addFriendBtn.addEventListener('click', addFriend);
             
+            // 设置emoji按钮事件
+            emojiBtn.addEventListener('click', toggleEmojiPicker);
+            
+            // 点击其他地方关闭emoji选择器
+            document.addEventListener('click', function(e) {
+                if (isEmojiPickerOpen && 
+                    !emojiPicker.contains(e.target) && 
+                    !emojiBtn.contains(e.target)) {
+                    closeEmojiPicker();
+                }
+            });
+            
             // 自动初始化Supabase连接
             initializeSupabase();
+            
+            // 初始化emoji选择器
+            initializeEmojiPicker();
         });
         
         // HTML转义函数
@@ -1879,6 +1976,71 @@
                 statusDot.classList.add('offline');
                 statusText.textContent = '连接失败';
             }
+        }
+        
+        // 初始化emoji选择器
+        function initializeEmojiPicker() {
+            const emojiCategories = {
+                "表情": ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕"],
+                "手势": ["👋", "🤚", "🖐️", "✋", "🖖", "👌", "🤌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆", "🖕", "👇", "☝️", "👍", "👎", "✊", "👊", "🤛", "🤜", "👏", "🙌", "👐", "🤲", "🤝", "🙏"],
+                "物品": ["⌚", "📱", "📲", "💻", "⌨️", "🖥️", "🖨️", "🖱️", "🖲️", "🕹️", "🗜️", "💽", "💾", "💿", "📀", "📼", "📷", "📸", "📹", "🎥", "📽️", "🎞️", "📞", "☎️", "📟", "📠", "📺", "📻", "🎙️", "🎚️", "🎛️", "🧭", "⏱️", "⏲️", "⏰", "🕰️", "⌛", "⏳", "📡"],
+                "自然": ["🐵", "🐒", "🦍", "🦧", "🐶", "🐕", "🦮", "🐕‍🦺", "🐩", "🐺", "🦊", "🦝", "🐱", "🐈", "🐈‍⬛", "🦁", "🐯", "🐅", "🐆", "🐴", "🐎", "🦄", "🦓", "🦌", "🐮", "🐂", "🐃", "🐄", "🐷", "🐖", "🐗", "🐽", "🐏", "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦏", "🦛", "🐭", "🐁", "🐀", "🐹", "🐰", "🐇", "🐿️", "🦔", "🦇", "🐻", "🐻‍❄️", "🐨", "🐼", "🦥", "🦦", "🦨", "🦘", "🦡", "🐾"],
+                "食物": ["🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🫑", "🌽", "🥕", "🫒", "🧄", "🧅", "🥔", "🍠", "🥐", "🥯", "🍞", "🥖", "🥨", "🧀", "🥚", "🍳", "🧈", "🥞", "🧇", "🥓", "🥩", "🍗", "🍖", "🦴", "🌭", "🍔", "🍟", "🍕"]
+            };
+            
+            emojiPicker.innerHTML = '';
+            
+            for (const [category, emojis] of Object.entries(emojiCategories)) {
+                const categoryElement = document.createElement('div');
+                categoryElement.className = 'emoji-category';
+                categoryElement.textContent = category;
+                emojiPicker.appendChild(categoryElement);
+                
+                emojis.forEach(emoji => {
+                    const emojiElement = document.createElement('div');
+                    emojiElement.className = 'emoji-item';
+                    emojiElement.textContent = emoji;
+                    emojiElement.addEventListener('click', () => {
+                        insertEmoji(emoji);
+                        closeEmojiPicker();
+                    });
+                    emojiPicker.appendChild(emojiElement);
+                });
+            }
+        }
+        
+        // 切换emoji选择器显示/隐藏
+        function toggleEmojiPicker() {
+            if (isEmojiPickerOpen) {
+                closeEmojiPicker();
+            } else {
+                openEmojiPicker();
+            }
+        }
+        
+        // 打开emoji选择器
+        function openEmojiPicker() {
+            emojiPicker.classList.add('show');
+            isEmojiPickerOpen = true;
+        }
+        
+        // 关闭emoji选择器
+        function closeEmojiPicker() {
+            emojiPicker.classList.remove('show');
+            isEmojiPickerOpen = false;
+        }
+        
+        // 插入emoji到输入框
+        function insertEmoji(emoji) {
+            const input = messageInput;
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+            const text = input.value;
+            const newText = text.substring(0, start) + emoji + text.substring(end);
+            
+            input.value = newText;
+            input.focus();
+            input.setSelectionRange(start + emoji.length, start + emoji.length);
         }
     </script>
 </body>
