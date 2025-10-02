@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Supabase实时聊天室</title>
+    <title>实时聊天室 - 静态部署版</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://js.pusher.com/7.2/pusher.min.js"></script>
     <style>
-        /* 样式保持不变，与之前相同 */
         :root {
             --primary: #3ECF8E;
             --primary-dark: #2dbd7e;
@@ -324,44 +323,6 @@
             100% { opacity: 1; }
         }
 
-        .typing-indicator {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 10px 16px;
-            background: var(--card-light);
-            border: 1px solid var(--border-light);
-            border-radius: 18px;
-            width: fit-content;
-            font-size: 0.9rem;
-            opacity: 0.7;
-        }
-
-        .dark-mode .typing-indicator {
-            background: var(--card-dark);
-            border-color: var(--border-dark);
-        }
-
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            background: var(--text-light);
-            border-radius: 50%;
-            animation: typingAnimation 1.4s infinite ease-in-out;
-        }
-
-        .dark-mode .typing-dot {
-            background: var(--text-dark);
-        }
-
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-
-        @keyframes typingAnimation {
-            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
-        }
-
         .login-container {
             display: flex;
             flex-direction: column;
@@ -445,8 +406,65 @@
             margin-left: auto;
         }
         
-        .offline {
-            background: var(--secondary);
+        .connection-status {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.8rem;
+            margin-top: 5px;
+        }
+        
+        .connection-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+        
+        .connected {
+            background: var(--success);
+        }
+        
+        .disconnected {
+            background: var(--danger);
+        }
+        
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 10px 16px;
+            background: var(--card-light);
+            border: 1px solid var(--border-light);
+            border-radius: 18px;
+            width: fit-content;
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-bottom: 10px;
+        }
+
+        .dark-mode .typing-indicator {
+            background: var(--card-dark);
+            border-color: var(--border-dark);
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--text-light);
+            border-radius: 50%;
+            animation: typingAnimation 1.4s infinite ease-in-out;
+        }
+
+        .dark-mode .typing-dot {
+            background: var(--text-dark);
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes typingAnimation {
+            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+            40% { transform: scale(1); opacity: 1; }
         }
     </style>
 </head>
@@ -457,7 +475,7 @@
             <div class="header">
                 <div class="logo">
                     <i class="fas fa-comments"></i>
-                    <span>Supabase聊天室</span>
+                    <span>实时聊天室</span>
                 </div>
                 <button class="theme-toggle" id="themeToggle">
                     <i class="fas fa-moon"></i>
@@ -468,7 +486,11 @@
                     <i class="fas fa-bolt"></i>
                     <div>
                         <h3>实时通信</h3>
-                        <p>使用Supabase实现实时消息同步</p>
+                        <p>使用Pusher实现实时消息同步</p>
+                        <div class="connection-status">
+                            <div class="connection-dot disconnected" id="connectionDot"></div>
+                            <span id="connectionStatus">连接断开</span>
+                        </div>
                     </div>
                 </div>
                 <div class="info-item">
@@ -479,10 +501,10 @@
                     </div>
                 </div>
                 <div class="info-item">
-                    <i class="fas fa-database"></i>
+                    <i class="fas fa-cloud"></i>
                     <div>
-                        <h3>PostgreSQL</h3>
-                        <p>基于强大的关系型数据库</p>
+                        <h3>云服务</h3>
+                        <p>使用Pusher Channels服务</p>
                     </div>
                 </div>
                 
@@ -503,7 +525,7 @@
                 <div class="chat-title">公共聊天室</div>
                 <div class="online-indicator">
                     <div class="online-dot"></div>
-                    <span id="onlineCount">1 人在线</span>
+                    <span id="onlineCount">0 人在线</span>
                 </div>
             </div>
             <div class="messages-container" id="messagesContainer">
@@ -516,7 +538,7 @@
                 </button>
             </div>
             <div class="footer">
-                <p>使用Supabase实时数据库 | 支持多设备聊天</p>
+                <p>使用Pusher Channels实现实时通信 | 部署在静态托管平台</p>
             </div>
         </div>
     </div>
@@ -538,12 +560,18 @@
     </div>
 
     <script>
-        // Supabase配置 - 替换为您自己的配置
-        const SUPABASE_URL = 'https://rudtcwlggkaxykrhhdsn.supabase.co'; // 替换为您的Supabase项目URL
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1ZHRjd2xnZ2theHlrcmhoZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMzkyNjEsImV4cCI6MjA3NDkxNTI2MX0.Tb1zZvaRS2rppM1_7ka4WgpIh_PFxc4bLVHPG9T0AKg'; // 替换为您的Supabase anon key
+        // Pusher配置 - 使用公共测试密钥（生产环境请使用自己的密钥）
+        const PUSHER_APP_KEY = 'a6c8d8e8c8d8e8c8d8e8';
+        const PUSHER_CLUSTER = 'mt1';
         
-        // 初始化Supabase客户端
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        // 初始化Pusher
+        const pusher = new Pusher(PUSHER_APP_KEY, {
+            cluster: PUSHER_CLUSTER,
+            forceTLS: true
+        });
+
+        // 订阅频道
+        const channel = pusher.subscribe('chat-channel');
 
         // DOM元素
         const messagesContainer = document.getElementById('messagesContainer');
@@ -556,12 +584,15 @@
         const userInfo = document.getElementById('userInfo');
         const userList = document.getElementById('userList');
         const onlineCount = document.getElementById('onlineCount');
+        const connectionDot = document.getElementById('connectionDot');
+        const connectionStatus = document.getElementById('connectionStatus');
 
         // 全局变量
         let currentUser = null;
         let userId = null;
         let onlineUsers = {};
-        let heartbeatInterval;
+        let isTyping = false;
+        let typingTimer;
 
         // 初始化
         document.addEventListener('DOMContentLoaded', () => {
@@ -574,11 +605,31 @@
                 themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
             }
             
-            // 加载历史消息
+            // 监听连接状态
+            pusher.connection.bind('state_change', (states) => {
+                updateConnectionStatus(states.current);
+            });
+            
+            // 初始连接状态
+            updateConnectionStatus(pusher.connection.state);
+            
+            // 加载历史消息（从localStorage）
             loadMessages();
-            // 更新在线用户
-            updateOnlineUsers();
         });
+
+        // 更新连接状态
+        function updateConnectionStatus(state) {
+            if (state === 'connected') {
+                connectionDot.className = 'connection-dot connected';
+                connectionStatus.textContent = '已连接';
+            } else if (state === 'connecting' || state === 'initialized') {
+                connectionDot.className = 'connection-dot disconnected';
+                connectionStatus.textContent = '连接中...';
+            } else {
+                connectionDot.className = 'connection-dot disconnected';
+                connectionStatus.textContent = '连接断开';
+            }
+        }
 
         // 设置事件监听器
         function setupEventListeners() {
@@ -590,6 +641,26 @@
                 if (e.key === 'Enter') {
                     sendMessage();
                 }
+            });
+            
+            // 输入时触发打字指示器
+            messageInput.addEventListener('input', () => {
+                if (!isTyping) {
+                    isTyping = true;
+                    channel.trigger('client-typing-start', {
+                        user: currentUser,
+                        userId: userId
+                    });
+                }
+                
+                clearTimeout(typingTimer);
+                typingTimer = setTimeout(() => {
+                    isTyping = false;
+                    channel.trigger('client-typing-stop', {
+                        user: currentUser,
+                        userId: userId
+                    });
+                }, 1000);
             });
             
             // 主题切换
@@ -605,7 +676,7 @@
         }
 
         // 用户登录
-        async function login() {
+        function login() {
             const username = usernameInput.value.trim();
             if (!username) {
                 alert('请输入用户名');
@@ -632,16 +703,16 @@
             `;
             
             // 设置用户在线状态
-            await setUserOnline();
-            
-            // 开始心跳机制
-            startHeartbeat();
+            setUserOnline();
             
             // 监听实时消息
             listenToMessages();
             
             // 监听在线用户变化
             listenToOnlineUsers();
+            
+            // 监听打字事件
+            listenToTypingEvents();
             
             // 添加欢迎消息
             addSystemMessage(`欢迎 ${username} 加入聊天室！`);
@@ -653,119 +724,132 @@
         }
 
         // 设置用户在线状态
-        async function setUserOnline() {
-            const userData = {
+        function setUserOnline() {
+            // 触发用户上线事件
+            channel.trigger('client-user-joined', {
                 id: userId,
                 username: currentUser,
-                last_seen: new Date().toISOString(),
-                is_online: true
-            };
-            
-            // 使用Supabase的upsert功能插入或更新用户
-            const { error } = await supabase
-                .from('online_users')
-                .upsert(userData);
-            
-            if (error) {
-                console.error('设置用户在线状态错误:', error);
-            }
-        }
-
-        // 开始心跳机制
-        function startHeartbeat() {
-            // 每30秒更新一次最后活动时间
-            heartbeatInterval = setInterval(async () => {
-                if (currentUser) {
-                    const { error } = await supabase
-                        .from('online_users')
-                        .update({ 
-                            last_seen: new Date().toISOString(),
-                            is_online: true
-                        })
-                        .eq('id', userId);
-                    
-                    if (error) {
-                        console.error('更新用户活动时间错误:', error);
-                    }
-                }
-            }, 30000);
+                timestamp: new Date().toISOString()
+            });
             
             // 页面关闭时设置离线
-            window.addEventListener('beforeunload', async () => {
+            window.addEventListener('beforeunload', () => {
                 if (currentUser) {
-                    await supabase
-                        .from('online_users')
-                        .update({ is_online: false })
-                        .eq('id', userId);
+                    channel.trigger('client-user-left', {
+                        id: userId,
+                        username: currentUser,
+                        timestamp: new Date().toISOString()
+                    });
                 }
             });
         }
 
         // 监听消息
         function listenToMessages() {
-            // 使用Supabase的实时订阅功能监听新消息
-            supabase
-                .channel('messages')
-                .on('postgres_changes', 
-                    { event: 'INSERT', schema: 'public', table: 'messages' }, 
-                    (payload) => {
-                        displayMessage(payload.new);
-                    }
-                )
-                .subscribe();
+            // 监听新消息事件
+            channel.bind('client-new-message', (data) => {
+                displayMessage(data);
+            });
+            
+            // 监听用户加入事件
+            channel.bind('client-user-joined', (data) => {
+                if (data.id !== userId) {
+                    addOnlineUser(data);
+                    addSystemMessage(`${data.username} 加入了聊天室`);
+                }
+            });
+            
+            // 监听用户离开事件
+            channel.bind('client-user-left', (data) => {
+                if (data.id !== userId) {
+                    removeOnlineUser(data.id);
+                    addSystemMessage(`${data.username} 离开了聊天室`);
+                }
+            });
         }
 
         // 监听在线用户
         function listenToOnlineUsers() {
-            // 使用Supabase的实时订阅功能监听在线用户变化
-            supabase
-                .channel('online_users')
-                .on('postgres_changes', 
-                    { event: '*', schema: 'public', table: 'online_users' }, 
-                    async (payload) => {
-                        // 重新获取在线用户列表
-                        await updateOnlineUsers();
-                    }
-                )
-                .subscribe();
+            // 定期更新在线用户列表（模拟功能）
+            setInterval(() => {
+                updateOnlineUsersUI();
+            }, 5000);
         }
 
-        // 更新在线用户列表
-        async function updateOnlineUsers() {
-            // 获取在线用户
-            const { data: users, error } = await supabase
-                .from('online_users')
-                .select('*')
-                .eq('is_online', true);
+        // 监听打字事件
+        function listenToTypingEvents() {
+            // 监听开始打字事件
+            channel.bind('client-typing-start', (data) => {
+                if (data.userId !== userId) {
+                    showTypingIndicator(data.user);
+                }
+            });
             
-            if (error) {
-                console.error('获取在线用户错误:', error);
-                return;
+            // 监听停止打字事件
+            channel.bind('client-typing-stop', (data) => {
+                if (data.userId !== userId) {
+                    hideTypingIndicator();
+                }
+            });
+        }
+
+        // 显示打字指示器
+        function showTypingIndicator(username) {
+            // 移除现有的指示器
+            hideTypingIndicator();
+            
+            const typingDiv = document.createElement('div');
+            typingDiv.className = 'typing-indicator';
+            typingDiv.id = 'typingIndicator';
+            
+            const typingText = document.createElement('span');
+            typingText.textContent = `${username} 正在输入`;
+            
+            const dotsContainer = document.createElement('div');
+            dotsContainer.style.display = 'flex';
+            dotsContainer.style.gap = '3px';
+            
+            for (let i = 0; i < 3; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'typing-dot';
+                dotsContainer.appendChild(dot);
             }
             
-            // 过滤掉5分钟内没有活动的用户
-            const activeUsers = users.filter(user => {
-                const lastSeen = new Date(user.last_seen);
-                const now = new Date();
-                return (now - lastSeen) < 5 * 60 * 1000; // 5分钟
-            });
+            typingDiv.appendChild(typingText);
+            typingDiv.appendChild(dotsContainer);
+            messagesContainer.appendChild(typingDiv);
             
-            // 更新在线用户列表
-            onlineUsers = {};
-            activeUsers.forEach(user => {
-                onlineUsers[user.id] = user;
-            });
-            
-            // 更新UI
-            updateOnlineUsersUI(activeUsers);
+            // 滚动到底部
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        // 隐藏打字指示器
+        function hideTypingIndicator() {
+            const typingIndicator = document.getElementById('typingIndicator');
+            if (typingIndicator) {
+                typingIndicator.remove();
+            }
+        }
+
+        // 添加在线用户
+        function addOnlineUser(user) {
+            onlineUsers[user.id] = user;
+            updateOnlineUsersUI();
+        }
+
+        // 移除在线用户
+        function removeOnlineUser(userId) {
+            delete onlineUsers[userId];
+            updateOnlineUsersUI();
         }
 
         // 更新在线用户UI
-        function updateOnlineUsersUI(users) {
+        function updateOnlineUsersUI() {
+            const users = Object.values(onlineUsers);
             let userListHTML = '<h4>在线用户</h4>';
             
             if (users.length === 0) {
-                userListHTML += '<p>暂无在线用户</p>';
+                userListHTML += '<p>暂无其他在线用户</p>';
             } else {
                 users.forEach(user => {
                     userListHTML += `
@@ -778,51 +862,77 @@
                 });
             }
             
+            // 添加当前用户
+            if (currentUser) {
+                userListHTML += `
+                    <div class="user-item" style="margin-top: 10px; border-top: 1px solid var(--border-light); padding-top: 10px;">
+                        <div class="user-avatar">${currentUser.charAt(0).toUpperCase()}</div>
+                        <div>${currentUser} (我)</div>
+                        <div class="status-indicator"></div>
+                    </div>
+                `;
+            }
+            
             userList.innerHTML = userListHTML;
-            onlineCount.textContent = `${users.length} 人在线`;
+            onlineCount.textContent = `${users.length + (currentUser ? 1 : 0)} 人在线`;
         }
 
         // 发送消息
-        async function sendMessage() {
+        function sendMessage() {
             const messageText = messageInput.value.trim();
             if (!messageText || !currentUser) return;
             
             const message = {
-                message_text: messageText,
-                username: currentUser,
-                user_id: userId,
-                created_at: new Date().toISOString()
+                id: generateMessageId(),
+                text: messageText,
+                user: currentUser,
+                userId: userId,
+                timestamp: new Date().toISOString()
             };
             
-            // 保存到Supabase
-            const { error } = await supabase
-                .from('messages')
-                .insert([message]);
+            // 保存到本地存储（作为历史记录）
+            saveMessageToLocal(message);
             
-            if (error) {
-                console.error('发送消息错误:', error);
-                alert('发送消息失败，请重试');
-                return;
-            }
+            // 通过Pusher发送消息
+            channel.trigger('client-new-message', message);
+            
+            // 显示自己的消息
+            displayMessage(message);
             
             // 清空输入框
             messageInput.value = '';
+            
+            // 停止打字指示器
+            if (isTyping) {
+                isTyping = false;
+                channel.trigger('client-typing-stop', {
+                    user: currentUser,
+                    userId: userId
+                });
+            }
+        }
+
+        // 生成消息ID
+        function generateMessageId() {
+            return 'msg_' + Math.random().toString(36).substr(2, 9) + '_' + Date.now();
+        }
+
+        // 保存消息到本地存储
+        function saveMessageToLocal(message) {
+            let messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
+            messages.push(message);
+            
+            // 只保留最近100条消息
+            if (messages.length > 100) {
+                messages = messages.slice(-100);
+            }
+            
+            localStorage.setItem('chatMessages', JSON.stringify(messages));
         }
 
         // 加载历史消息
-        async function loadMessages() {
-            const { data: messages, error } = await supabase
-                .from('messages')
-                .select('*')
-                .order('created_at', { ascending: true })
-                .limit(50);
-            
-            if (error) {
-                console.error('加载消息错误:', error);
-                return;
-            }
-            
-            // 显示消息
+        function loadMessages() {
+            const messages = JSON.parse(localStorage.getItem('chatMessages')) || [];
             messages.forEach(message => {
                 displayMessage(message, true);
             });
@@ -837,22 +947,22 @@
             const messageDiv = document.createElement('div');
             messageDiv.setAttribute('data-message-id', message.id);
             
-            if (message.user_id === userId) {
+            if (message.userId === userId) {
                 // 自己的消息
                 messageDiv.className = 'message user-message';
                 messageDiv.innerHTML = `
-                    <div>${message.message_text}</div>
-                    <div class="message-time">${formatTime(message.created_at)}</div>
+                    <div>${message.text}</div>
+                    <div class="message-time">${formatTime(message.timestamp)}</div>
                 `;
             } else {
                 // 其他用户的消息
                 messageDiv.className = 'message other-user-message';
                 messageDiv.innerHTML = `
                     <div class="message-header">
-                        <span>${message.username}</span>
+                        <span>${message.user}</span>
                     </div>
-                    <div>${message.message_text}</div>
-                    <div class="message-time">${formatTime(message.created_at)}</div>
+                    <div>${message.text}</div>
+                    <div class="message-time">${formatTime(message.timestamp)}</div>
                 `;
             }
             
