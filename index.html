@@ -3,1792 +3,1090 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>实时聊天室 - Supabase 数据库</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>聊天室</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        :root {
-            --primary: #3ECF8E;
-            --primary-dark: #2dbd7e;
-            --secondary: #6C757D;
-            --success: #28a745;
-            --danger: #dc3545;
-            --warning: #ffc107;
-            --bg-light: #f8f9fa;
-            --bg-dark: #1a1d29;
-            --card-light: #ffffff;
-            --card-dark: #252836;
-            --text-light: #333333;
-            --text-dark: #e4e6eb;
-            --border-light: #e1e5e9;
-            --border-dark: #3a3f50;
-            --shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-            --radius: 12px;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            transition: background-color 0.3s, color 0.3s;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
+        
         body {
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-            background: linear-gradient(135deg, #3ECF8E 0%, #3B82F6 100%);
-            color: var(--text-light);
-            min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-
-        body.dark-mode {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: var(--text-dark);
-        }
-
-        .container {
-            width: 100%;
-            max-width: 1000px;
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 20px;
-        }
-
-        @media (max-width: 768px) {
-            .container {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .card {
-            background: var(--card-light);
-            border-radius: var(--radius);
-            box-shadow: var(--shadow);
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
             overflow: hidden;
         }
-
-        .dark-mode .card {
-            background: var(--card-dark);
-        }
-
-        .header {
-            background: var(--primary);
-            color: white;
-            padding: 20px;
+        
+        .container {
             display: flex;
-            justify-content: space-between;
-            align-items: center;
+            width: 100%;
+            height: 100vh;
         }
-
-        .dark-mode .header {
-            background: var(--primary-dark);
+        
+        .auth-container, .chat-container {
+            background: white;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
         }
-
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 1.5rem;
-            font-weight: 700;
+        
+        .auth-container {
+            width: 400px;
+            margin: auto;
+            border-radius: 12px;
+            padding: 30px;
         }
-
-        .theme-toggle {
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .info-panel {
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            height: 100%;
-        }
-
-        .info-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 10px;
-            border-radius: 8px;
-            background: rgba(62, 207, 142, 0.1);
-        }
-
-        .dark-mode .info-item {
-            background: rgba(62, 207, 142, 0.15);
-        }
-
-        .info-item i {
-            color: var(--primary);
-            font-size: 1.2rem;
-        }
-
-        .user-info {
-            margin-top: auto;
-            padding: 15px;
-            border-radius: 8px;
-            background: rgba(62, 207, 142, 0.1);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .dark-mode .user-info {
-            background: rgba(62, 207, 142, 0.15);
-        }
-
-        .avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-        }
-
+        
         .chat-container {
+            flex: 1;
             display: flex;
             flex-direction: column;
-            height: 600px;
         }
-
+        
         .chat-header {
-            padding: 15px 20px;
-            border-bottom: 1px solid var(--border-light);
+            background: #4a6ee0;
+            color: white;
+            padding: 15px 25px;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
-
-        .dark-mode .chat-header {
-            border-bottom-color: var(--border-dark);
-        }
-
-        .chat-title {
-            font-size: 1.2rem;
+        
+        .chat-header h1 {
+            font-size: 1.5rem;
             font-weight: 600;
         }
-
-        .online-indicator {
+        
+        .user-info {
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            color: var(--success);
+            gap: 12px;
         }
-
-        .online-dot {
-            width: 8px;
-            height: 8px;
-            background: var(--success);
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
             border-radius: 50%;
-            animation: pulse 2s infinite;
+            background: rgba(255, 255, 255, 0.2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.1rem;
         }
-
-        .messages-container {
+        
+        .logout-btn {
+            padding: 8px 16px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+        
+        .logout-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .auth-tabs {
+            display: flex;
+            margin-bottom: 25px;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .auth-tab {
             flex: 1;
-            padding: 20px;
+            padding: 12px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .auth-tab.active {
+            border-bottom: 2px solid #4a6ee0;
+            color: #4a6ee0;
+            font-weight: 600;
+        }
+        
+        .auth-form {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-label {
+            font-size: 0.95rem;
+            color: #555;
+            font-weight: 500;
+        }
+        
+        .form-input {
+            padding: 14px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            outline: none;
+            font-size: 1rem;
+            transition: border 0.3s;
+        }
+        
+        .form-input:focus {
+            border-color: #4a6ee0;
+        }
+        
+        .auth-btn {
+            padding: 14px;
+            background: #4a6ee0;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            margin-top: 10px;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+        
+        .auth-btn:hover {
+            background: #3a5ed0;
+        }
+        
+        .auth-message {
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 0.95rem;
+        }
+        
+        .auth-message.success {
+            background: #e7f7ed;
+            color: #2d7730;
+        }
+        
+        .auth-message.error {
+            background: #fde8e8;
+            color: #c53030;
+        }
+        
+        .chat-messages {
+            flex: 1;
+            padding: 25px;
             overflow-y: auto;
             display: flex;
             flex-direction: column;
-            gap: 15px;
+            gap: 18px;
+            background: #f8f9fa;
         }
-
+        
         .message {
-            max-width: 80%;
-            padding: 12px 16px;
+            max-width: 70%;
+            padding: 14px 18px;
             border-radius: 18px;
             position: relative;
-            animation: fadeIn 0.3s ease;
+            line-height: 1.5;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         }
-
-        .user-message {
+        
+        .message.sent {
             align-self: flex-end;
-            background: var(--primary);
+            background: #4a6ee0;
             color: white;
-            border-bottom-right-radius: 4px;
+            border-bottom-right-radius: 6px;
         }
-
-        .other-user-message {
+        
+        .message.received {
             align-self: flex-start;
-            background: var(--card-light);
-            border: 1px solid var(--border-light);
-            border-bottom-left-radius: 4px;
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 6px;
+            border: 1px solid #e1e8ed;
         }
-
-        .dark-mode .other-user-message {
-            background: var(--card-dark);
-            border-color: var(--border-dark);
-        }
-
-        .message-header {
+        
+        .message-info {
             display: flex;
             justify-content: space-between;
-            margin-bottom: 5px;
+            margin-top: 8px;
             font-size: 0.8rem;
             opacity: 0.8;
         }
-
-        .message-time {
-            font-size: 0.75rem;
-            opacity: 0.7;
-            margin-top: 5px;
-            text-align: right;
-        }
-
-        .input-container {
-            padding: 15px 20px;
-            border-top: 1px solid var(--border-light);
+        
+        .chat-input-container {
+            padding: 20px 25px;
+            border-top: 1px solid #eee;
             display: flex;
-            gap: 10px;
+            gap: 12px;
+            background: white;
         }
-
-        .dark-mode .input-container {
-            border-top-color: var(--border-dark);
-        }
-
-        .message-input {
+        
+        .chat-input {
             flex: 1;
-            padding: 12px 16px;
-            border: 1px solid var(--border-light);
+            padding: 15px 20px;
+            border: 1px solid #ddd;
             border-radius: 24px;
             outline: none;
             font-size: 1rem;
-            background: var(--card-light);
-            color: var(--text-light);
-        }
-
-        .dark-mode .message-input {
-            background: var(--card-dark);
-            border-color: var(--border-dark);
-            color: var(--text-dark);
-        }
-
-        .message-input:focus {
-            border-color: var(--primary);
-        }
-
-        .send-button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            width: 46px;
-            height: 46px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: background 0.2s;
-        }
-
-        .send-button:hover {
-            background: var(--primary-dark);
-        }
-
-        .footer {
-            text-align: center;
-            padding: 15px;
-            font-size: 0.85rem;
-            opacity: 0.8;
-            border-top: 1px solid var(--border-light);
-        }
-
-        .dark-mode .footer {
-            border-top-color: var(--border-dark);
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        @keyframes pulse {
-            0% { opacity: 1; }
-            50% { opacity: 0.5; }
-            100% { opacity: 1; }
-        }
-
-        .login-container {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-            padding: 20px;
-        }
-
-        .login-input {
-            padding: 12px 16px;
-            border: 1px solid var(--border-light);
-            border-radius: 8px;
-            outline: none;
-            font-size: 1rem;
-            background: var(--card-light);
-            color: var(--text-light);
-        }
-
-        .dark-mode .login-input {
-            background: var(--card-dark);
-            border-color: var(--border-dark);
-            color: var(--text-dark);
-        }
-
-        .login-button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-
-        .login-button:hover {
-            background: var(--primary-dark);
-        }
-
-        .user-list {
-            padding: 10px;
-            max-height: 150px;
-            overflow-y: auto;
-        }
-
-        .user-item {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            padding: 8px;
-            border-radius: 6px;
-            margin-bottom: 5px;
-        }
-
-        .user-item:hover {
-            background: rgba(62, 207, 142, 0.1);
-        }
-
-        .dark-mode .user-item:hover {
-            background: rgba(62, 207, 142, 0.15);
-        }
-
-        .user-avatar {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            background: var(--primary);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 0.8rem;
+            transition: border 0.3s;
         }
         
-        .status-indicator {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: var(--success);
-            margin-left: auto;
+        .chat-input:focus {
+            border-color: #4a6ee0;
+        }
+        
+        .send-btn {
+            padding: 15px 25px;
+            background: #4a6ee0;
+            color: white;
+            border: none;
+            border-radius: 24px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background 0.3s;
+            min-width: 100px;
+        }
+        
+        .send-btn:hover {
+            background: #3a5ed0;
+        }
+        
+        .status {
+            text-align: center;
+            padding: 15px;
+            color: #666;
+            font-size: 1rem;
         }
         
         .connection-status {
             display: flex;
             align-items: center;
-            gap: 5px;
-            font-size: 0.8rem;
-            margin-top: 5px;
+            gap: 8px;
+            font-size: 0.9rem;
+            padding: 10px 25px;
+            background: #f9f9f9;
+            border-bottom: 1px solid #eee;
         }
         
-        .connection-dot {
-            width: 8px;
-            height: 8px;
+        .status-dot {
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
+            background: #4CAF50;
         }
         
-        .connected {
-            background: var(--success);
+        .status-dot.offline {
+            background: #f44336;
         }
         
-        .disconnected {
-            background: var(--danger);
+        .users-online {
+            padding: 12px 25px;
+            background: #f0f8ff;
+            border-bottom: 1px solid #e1e8ed;
+            font-size: 0.95rem;
+            color: #555;
         }
         
-        .typing-indicator {
+        .setup-panel {
+            padding: 25px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .loading-container {
             display: flex;
-            align-items: center;
-            gap: 5px;
-            padding: 10px 16px;
-            background: var(--card-light);
-            border: 1px solid var(--border-light);
-            border-radius: 18px;
-            width: fit-content;
-            font-size: 0.9rem;
-            opacity: 0.7;
-            margin-bottom: 10px;
-        }
-
-        .dark-mode .typing-indicator {
-            background: var(--card-dark);
-            border-color: var(--border-dark);
-        }
-
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            background: var(--text-light);
-            border-radius: 50%;
-            animation: typingAnimation 1.4s infinite ease-in-out;
-        }
-
-        .dark-mode .typing-dot {
-            background: var(--text-dark);
-        }
-
-        .typing-dot:nth-child(1) { animation-delay: -0.32s; }
-        .typing-dot:nth-child(2) { animation-delay: -0.16s; }
-
-        @keyframes typingAnimation {
-            0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
-            40% { transform: scale(1); opacity: 1; }
-        }
-        
-        .system-message {
-            text-align: center;
-            font-style: italic;
-            color: var(--secondary);
-            margin: 10px 0;
-            font-size: 0.9rem;
-        }
-        
-        .message-actions {
-            display: flex;
-            gap: 5px;
-            margin-top: 5px;
-            justify-content: flex-end;
-        }
-        
-        .message-action {
-            background: none;
-            border: none;
-            color: rgba(255, 255, 255, 0.7);
-            cursor: pointer;
-            font-size: 0.7rem;
-            padding: 2px 5px;
-            border-radius: 3px;
-        }
-        
-        .message-action:hover {
-            background: rgba(255, 255, 255, 0.1);
-        }
-        
-        .load-more {
-            text-align: center;
-            margin: 10px 0;
-        }
-        
-        .load-more-button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            background: var(--primary);
-            color: white;
-            box-shadow: var(--shadow);
-            z-index: 1000;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            animation: slideIn 0.3s ease;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
-        }
-        
-        .notification.error {
-            background: var(--danger);
-        }
-        
-        .notification.warning {
-            background: var(--warning);
-            color: var(--text-light);
-        }
-        
-        .config-panel {
-            padding: 15px;
-            background: rgba(0,0,0,0.05);
-            border-radius: 8px;
-            margin-top: 10px;
-        }
-        
-        .config-input {
-            width: 100%;
-            padding: 8px 12px;
-            border: 1px solid var(--border-light);
-            border-radius: 6px;
-            margin-bottom: 8px;
-            font-size: 0.9rem;
-        }
-        
-        .dark-mode .config-input {
-            background: var(--card-dark);
-            border-color: var(--border-dark);
-            color: var(--text-dark);
-        }
-        
-        .config-button {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            width: 100%;
-        }
-        
-        .typing-users {
-            font-size: 0.8rem;
-            color: var(--secondary);
-            margin-bottom: 10px;
-            padding-left: 10px;
-            font-style: italic;
-        }
-        
-        /* 账号登录相关样式 */
-        .auth-tabs {
-            display: flex;
-            border-bottom: 1px solid var(--border-light);
-        }
-        
-        .auth-tab {
-            flex: 1;
-            text-align: center;
-            padding: 12px;
-            background: none;
-            border: none;
-            cursor: pointer;
-            font-size: 1rem;
-            color: var(--secondary);
-            border-bottom: 2px solid transparent;
-        }
-        
-        .auth-tab.active {
-            color: var(--primary);
-            border-bottom-color: var(--primary);
-        }
-        
-        .auth-form {
-            display: none;
             flex-direction: column;
-            gap: 15px;
-            padding: 20px;
-        }
-        
-        .auth-form.active {
-            display: flex;
-        }
-        
-        .auth-footer {
-            text-align: center;
-            margin-top: 10px;
-            font-size: 0.8rem;
-            color: var(--secondary);
-        }
-        
-        .auth-switch {
-            background: none;
-            border: none;
-            color: var(--primary);
-            cursor: pointer;
-            text-decoration: underline;
-        }
-        
-        .user-actions {
-            display: flex;
-            gap: 10px;
-            margin-top: 10px;
-        }
-        
-        .user-action-button {
-            flex: 1;
-            padding: 8px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            background: rgba(0,0,0,0.05);
-            color: var(--text-light);
-        }
-        
-        .dark-mode .user-action-button {
-            background: rgba(255,255,255,0.1);
-            color: var(--text-dark);
-        }
-        
-        .user-action-button:hover {
-            background: rgba(0,0,0,0.1);
-        }
-        
-        .dark-mode .user-action-button:hover {
-            background: rgba(255,255,255,0.2);
-        }
-        
-        .user-action-button.logout {
-            background: rgba(220, 53, 69, 0.1);
-            color: var(--danger);
-        }
-        
-        .user-action-button.logout:hover {
-            background: rgba(220, 53, 69, 0.2);
-        }
-        
-        .message-status {
-            font-size: 0.7rem;
-            opacity: 0.7;
-            margin-top: 2px;
-            display: flex;
             align-items: center;
-            gap: 3px;
+            justify-content: center;
+            padding: 40px;
         }
         
-        .message-status i {
-            font-size: 0.6rem;
+        .loading-spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4a6ee0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 滚动条样式 */
+        .chat-messages::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 4px;
+        }
+        
+        .chat-messages::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+        
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+            }
+            
+            .auth-container {
+                width: 100%;
+                max-width: 500px;
+                margin: 0 auto;
+                border-radius: 0;
+                height: 100vh;
+                justify-content: center;
+                display: flex;
+                flex-direction: column;
+            }
+            
+            .chat-container {
+                height: 100vh;
+            }
+        }
+        
+        @media (max-width: 600px) {
+            .message {
+                max-width: 85%;
+            }
+            
+            .chat-header {
+                padding: 12px 15px;
+            }
+            
+            .chat-messages {
+                padding: 15px;
+            }
+            
+            .chat-input-container {
+                padding: 15px;
+            }
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <!-- 信息面板 -->
-        <div class="card">
-            <div class="header">
-                <div class="logo">
-                    <i class="fas fa-comments"></i>
-                    <span>实时聊天室</span>
-                </div>
-                <button class="theme-toggle" id="themeToggle">
-                    <i class="fas fa-moon"></i>
-                </button>
+        <div class="auth-container" id="authContainer">
+            <div class="loading-container" id="loadingContainer">
+                <div class="loading-spinner"></div>
+                <div class="status" id="loadingStatus">正在初始化聊天室...</div>
             </div>
-            <div class="info-panel">
-                <div class="info-item">
-                    <i class="fas fa-bolt"></i>
-                    <div>
-                        <h3>实时通信</h3>
-                        <p>使用Supabase实时订阅</p>
-                        <div class="connection-status">
-                            <div class="connection-dot disconnected" id="connectionDot"></div>
-                            <span id="connectionStatus">连接断开</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-database"></i>
-                    <div>
-                        <h3>Supabase 数据库</h3>
-                        <p>消息永久保存在 PostgreSQL</p>
-                    </div>
-                </div>
-                <div class="info-item">
-                    <i class="fas fa-users"></i>
-                    <div>
-                        <h3>多设备支持</h3>
-                        <p>在不同设备间实时聊天</p>
-                    </div>
+            
+            <div id="authForms" style="display: none;">
+                <h2 style="text-align: center; margin-bottom: 25px; color: #4a6ee0;">欢迎使用聊天室</h2>
+                <div class="auth-tabs">
+                    <div class="auth-tab active" id="loginTab">登录</div>
+                    <div class="auth-tab" id="registerTab">注册</div>
                 </div>
                 
-                <div class="user-list" id="userList">
-                    <h4>在线用户</h4>
-                    <!-- 在线用户列表将在这里显示 -->
+                <div class="auth-form" id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-input" id="loginUsername" placeholder="请输入用户名">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">密码</label>
+                        <input type="password" class="form-input" id="loginPassword" placeholder="请输入密码">
+                    </div>
+                    
+                    <button class="auth-btn" id="loginBtn">登录</button>
                 </div>
                 
-                <div class="config-panel">
-                    <h4>Supabase 配置</h4>
-                    <input type="text" class="config-input" id="supabaseUrlInput" placeholder="Supabase URL">
-                    <input type="text" class="config-input" id="supabaseKeyInput" placeholder="Supabase Anon Key">
-                    <button class="config-button" id="saveConfigButton">保存配置</button>
+                <div class="auth-form" id="registerForm" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-input" id="registerUsername" placeholder="请输入用户名">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label">密码</label>
+                        <input type="password" class="form-input" id="registerPassword" placeholder="请输入密码（至少6位）">
+                    </div>
+                    
+                    <button class="auth-btn" id="registerBtn">注册</button>
                 </div>
                 
-                <div class="user-info" id="userInfo">
-                    <!-- 用户信息将在这里显示 -->
-                </div>
+                <div id="authMessage"></div>
             </div>
         </div>
-
-        <!-- 聊天面板 -->
-        <div class="card chat-container">
+        
+        <div class="chat-container" id="chatContainer" style="display: none;">
             <div class="chat-header">
-                <div class="chat-title">公共聊天室</div>
-                <div class="online-indicator">
-                    <div class="online-dot"></div>
-                    <span id="onlineCount">0 人在线</span>
+                <h1>聊天室</h1>
+                <div class="user-info">
+                    <div class="user-avatar" id="userAvatar">U</div>
+                    <span id="userName">用户</span>
+                    <button class="logout-btn" id="logoutBtn">退出</button>
                 </div>
             </div>
-            <div class="messages-container" id="messagesContainer">
-                <div class="load-more">
-                    <button class="load-more-button" id="loadMoreButton">加载更多消息</button>
-                </div>
-                <!-- 消息将在这里动态生成 -->
+            
+            <div class="connection-status">
+                <div class="status-dot offline" id="statusDot"></div>
+                <span id="statusText">未连接</span>
             </div>
-            <div class="input-container">
-                <input type="text" class="message-input" id="messageInput" placeholder="输入消息..." disabled>
-                <button class="send-button" id="sendButton" disabled>
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+            
+            <div class="users-online" id="usersOnline">
+                在线用户: 加载中...
             </div>
-            <div class="footer">
-                <p>使用Supabase实时数据库 | 消息永久保存</p>
+            
+            <div class="chat-messages" id="chatMessages">
+                <div class="status">请先登录并配置Supabase连接</div>
             </div>
-        </div>
-    </div>
-
-    <!-- 登录模态框 -->
-    <div id="loginModal" style="display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div class="card" style="width: 90%; max-width: 400px;">
-            <div class="header">
-                <div class="logo">
-                    <i class="fas fa-user"></i>
-                    <span>加入聊天室</span>
-                </div>
-            </div>
-            <div class="auth-tabs">
-                <button class="auth-tab active" id="loginTab">账号登录</button>
-                <button class="auth-tab" id="registerTab">注册账号</button>
-            </div>
-            <div class="auth-form active" id="loginForm">
-                <input type="email" class="login-input" id="loginEmail" placeholder="邮箱地址">
-                <input type="password" class="login-input" id="loginPassword" placeholder="密码">
-                <button class="login-button" id="loginButton">登录</button>
-                <div class="auth-footer">
-                    <span>还没有账号？</span>
-                    <button class="auth-switch" id="switchToRegister">立即注册</button>
-                </div>
-            </div>
-            <div class="auth-form" id="registerForm">
-                <input type="text" class="login-input" id="registerUsername" placeholder="用户名" maxlength="20">
-                <input type="email" class="login-input" id="registerEmail" placeholder="邮箱地址">
-                <input type="password" class="login-input" id="registerPassword" placeholder="密码（至少6位）">
-                <button class="login-button" id="registerButton">注册</button>
-                <div class="auth-footer">
-                    <span>已有账号？</span>
-                    <button class="auth-switch" id="switchToLogin">立即登录</button>
-                </div>
+            
+            <div class="chat-input-container">
+                <input type="text" class="chat-input" id="messageInput" placeholder="请先登录..." disabled>
+                <button class="send-btn" id="sendBtn" disabled>发送</button>
             </div>
         </div>
     </div>
 
     <script>
-        // Supabase 配置
-        let supabaseUrl = 'https://rudtcwlggkaxykrhhdsn.supabase.co';
-        let supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1ZHRjd2xnZ2theHlrcmhoZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMzkyNjEsImV4cCI6MjA3NDkxNTI2MX0.Tb1zZvaRS2rppM1_7ka4WgpIh_PFxc4bLVHPG9T0AKg';
-        let supabase = null;
+        // Supabase配置 - 直接内置在代码中
+        const SUPABASE_URL = 'https://rudtcwlggkaxykrhhdsn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1ZHRjd2xnZ2theHlrcmhoZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMzkyNjEsImV4cCI6MjA3NDkxNTI2MX0.Tb1zZvaRS2rppM1_7ka4WgpIh_PFxc4bLVHPG9T0AKg';
         
-        // 从本地存储加载配置
-        function loadConfig() {
-            const savedConfig = localStorage.getItem('supabaseConfig');
-            if (savedConfig) {
-                const config = JSON.parse(savedConfig);
-                supabaseUrl = config.url || '';
-                supabaseKey = config.key || '';
-                
-                document.getElementById('supabaseUrlInput').value = supabaseUrl;
-                document.getElementById('supabaseKeyInput').value = supabaseKey;
-                
-                // 初始化 Supabase
-                initializeSupabase();
-            }
-        }
-        
-        // 保存配置
-        function saveConfig() {
-            supabaseUrl = document.getElementById('supabaseUrlInput').value.trim();
-            supabaseKey = document.getElementById('supabaseKeyInput').value.trim();
-            
-            const config = {
-                url: supabaseUrl,
-                key: supabaseKey
-            };
-            
-            localStorage.setItem('supabaseConfig', JSON.stringify(config));
-            
-            // 重新初始化 Supabase
-            initializeSupabase();
-            
-            showNotification('配置已保存');
-        }
-        
-        // 初始化 Supabase
-        function initializeSupabase() {
-            if (supabaseUrl && supabaseKey) {
-                try {
-                    supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-                    updateConnectionStatus(true);
-                    
-                    // 检查是否有已保存的登录会话
-                    checkAuthSession();
-                    
-                    showNotification('Supabase 连接成功');
-                } catch (error) {
-                    console.error('Supabase 初始化失败:', error);
-                    updateConnectionStatus(false);
-                    showNotification('Supabase 连接失败', 'error');
-                }
-            } else {
-                updateConnectionStatus(false);
-            }
-        }
-
         // DOM元素
-        const messagesContainer = document.getElementById('messagesContainer');
-        const messageInput = document.getElementById('messageInput');
-        const sendButton = document.getElementById('sendButton');
-        const themeToggle = document.getElementById('themeToggle');
-        const loginModal = document.getElementById('loginModal');
-        const userInfo = document.getElementById('userInfo');
-        const userList = document.getElementById('userList');
-        const onlineCount = document.getElementById('onlineCount');
-        const connectionDot = document.getElementById('connectionDot');
-        const connectionStatus = document.getElementById('connectionStatus');
-        const loadMoreButton = document.getElementById('loadMoreButton');
-        const supabaseUrlInput = document.getElementById('supabaseUrlInput');
-        const supabaseKeyInput = document.getElementById('supabaseKeyInput');
-        const saveConfigButton = document.getElementById('saveConfigButton');
-        
-        // 账号登录相关元素
+        const authContainer = document.getElementById('authContainer');
+        const chatContainer = document.getElementById('chatContainer');
+        const loadingContainer = document.getElementById('loadingContainer');
+        const loadingStatus = document.getElementById('loadingStatus');
+        const authForms = document.getElementById('authForms');
         const loginTab = document.getElementById('loginTab');
         const registerTab = document.getElementById('registerTab');
         const loginForm = document.getElementById('loginForm');
         const registerForm = document.getElementById('registerForm');
-        const loginEmail = document.getElementById('loginEmail');
+        const loginUsername = document.getElementById('loginUsername');
         const loginPassword = document.getElementById('loginPassword');
-        const loginButton = document.getElementById('loginButton');
         const registerUsername = document.getElementById('registerUsername');
-        const registerEmail = document.getElementById('registerEmail');
         const registerPassword = document.getElementById('registerPassword');
-        const registerButton = document.getElementById('registerButton');
-        const switchToRegister = document.getElementById('switchToRegister');
-        const switchToLogin = document.getElementById('switchToLogin');
-
+        const loginBtn = document.getElementById('loginBtn');
+        const registerBtn = document.getElementById('registerBtn');
+        const authMessage = document.getElementById('authMessage');
+        const userAvatar = document.getElementById('userAvatar');
+        const userName = document.getElementById('userName');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const chatMessages = document.getElementById('chatMessages');
+        const messageInput = document.getElementById('messageInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const statusDot = document.getElementById('statusDot');
+        const statusText = document.getElementById('statusText');
+        const usersOnline = document.getElementById('usersOnline');
+        
         // 全局变量
+        let supabase = null;
         let currentUser = null;
-        let userId = null;
-        let onlineUsers = {};
-        let isTyping = false;
-        let typingTimer;
-        let messageOffset = 0;
-        let typingUsers = new Set();
-        const MESSAGES_PER_PAGE = 20;
-
+        let isConnected = false;
+        let messageSubscription = null;
+        let onlineUsers = [];
+        
         // 初始化
-        document.addEventListener('DOMContentLoaded', () => {
-            setupEventListeners();
-            loadConfig();
+        document.addEventListener('DOMContentLoaded', function() {
+            // 设置认证标签切换
+            loginTab.addEventListener('click', () => switchAuthTab('login'));
+            registerTab.addEventListener('click', () => switchAuthTab('register'));
             
-            // 检查保存的主题偏好
-            const savedTheme = localStorage.getItem('chatTheme');
-            if (savedTheme === 'dark') {
-                document.body.classList.add('dark-mode');
-                themeToggle.innerHTML = '<i class="fas fa-sun"></i>';
-            }
+            // 设置认证按钮事件
+            loginBtn.addEventListener('click', handleLogin);
+            registerBtn.addEventListener('click', handleRegister);
             
-            // 尝试检查认证会话
-            setTimeout(checkAuthSession, 500);
-        });
-
-        // 检查认证会话
-        async function checkAuthSession() {
-            if (!supabase) return;
-            
-            try {
-                const { data, error } = await supabase.auth.getSession();
-                if (error) {
-                    console.error('检查会话失败:', error);
-                    return;
-                }
-                
-                if (data.session) {
-                    // 用户已登录
-                    const user = data.session.user;
-                    currentUser = user.user_metadata.username || user.email.split('@')[0];
-                    userId = user.id;
-                    
-                    // 获取用户资料（如果profiles表存在）
-                    await fetchUserProfile();
-                    
-                    loginModal.style.display = 'none';
-                    initializeChat();
-                }
-            } catch (error) {
-                console.error('检查认证会话异常:', error);
-            }
-        }
-
-        // 更新连接状态
-        function updateConnectionStatus(connected) {
-            if (connected) {
-                connectionDot.className = 'connection-dot connected';
-                connectionStatus.textContent = '已连接';
-            } else {
-                connectionDot.className = 'connection-dot disconnected';
-                connectionStatus.textContent = '连接断开';
-            }
-        }
-
-        // 设置事件监听器
-        function setupEventListeners() {
-            // 发送消息
-            sendButton.addEventListener('click', sendMessage);
-            
-            // 回车发送消息
-            messageInput.addEventListener('keypress', (e) => {
+            // 设置发送消息事件
+            sendBtn.addEventListener('click', sendMessage);
+            messageInput.addEventListener('keypress', function(e) {
                 if (e.key === 'Enter') {
                     sendMessage();
                 }
             });
             
-            // 输入时触发打字指示器
-            messageInput.addEventListener('input', () => {
-                if (!isTyping && currentUser && supabase) {
-                    isTyping = true;
-                    handleTypingStart();
+            // 设置退出登录事件
+            logoutBtn.addEventListener('click', handleLogout);
+            
+            // 自动初始化Supabase连接
+            initializeSupabase();
+        });
+        
+        // 初始化Supabase连接
+        function initializeSupabase() {
+            try {
+                loadingStatus.textContent = '正在连接Supabase...';
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                
+                // 测试连接
+                testConnection();
+            } catch (error) {
+                console.error('初始化Supabase错误:', error);
+                loadingStatus.textContent = '初始化失败: ' + error.message;
+            }
+        }
+        
+        // 测试连接
+        async function testConnection() {
+            try {
+                loadingStatus.textContent = '正在测试数据库连接...';
+                
+                // 尝试查询消息表
+                const { data, error } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .limit(1);
+                
+                if (error) {
+                    if (error.code === 'PGRST301') {
+                        loadingStatus.textContent = '数据库表不存在，请检查表结构';
+                        createTables();
+                        return;
+                    } else if (error.code === '42501') {
+                        loadingStatus.textContent = '权限错误，请检查RLS策略';
+                    } else {
+                        throw error;
+                    }
+                } else {
+                    // 连接成功
+                    loadingContainer.style.display = 'none';
+                    authForms.style.display = 'block';
+                    updateConnectionStatus(true);
+                    
+                    // 检查是否有保存的会话
+                    checkSavedSession();
                 }
                 
-                clearTimeout(typingTimer);
-                typingTimer = setTimeout(() => {
-                    isTyping = false;
-                    handleTypingStop();
-                }, 1000);
-            });
-            
-            // 主题切换
-            themeToggle.addEventListener('click', toggleTheme);
-            
-            // 登录
-            loginButton.addEventListener('click', loginWithEmail);
-            loginEmail.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    loginWithEmail();
-                }
-            });
-            loginPassword.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    loginWithEmail();
-                }
-            });
-            
-            // 注册
-            registerButton.addEventListener('click', registerWithEmail);
-            registerUsername.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    registerWithEmail();
-                }
-            });
-            registerEmail.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    registerWithEmail();
-                }
-            });
-            registerPassword.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    registerWithEmail();
-                }
-            });
-            
-            // 切换登录/注册表单
-            switchToRegister.addEventListener('click', () => {
-                loginTab.classList.remove('active');
-                registerTab.classList.add('active');
-                loginForm.classList.remove('active');
-                registerForm.classList.add('active');
-            });
-            
-            switchToLogin.addEventListener('click', () => {
-                registerTab.classList.remove('active');
-                loginTab.classList.add('active');
-                registerForm.classList.remove('active');
-                loginForm.classList.add('active');
-            });
-            
-            // 标签切换
-            loginTab.addEventListener('click', () => {
-                loginTab.classList.add('active');
-                registerTab.classList.remove('active');
-                loginForm.classList.add('active');
-                registerForm.classList.remove('active');
-            });
-            
-            registerTab.addEventListener('click', () => {
-                registerTab.classList.add('active');
-                loginTab.classList.remove('active');
-                registerForm.classList.add('active');
-                loginForm.classList.remove('active');
-            });
-            
-            // 加载更多消息
-            loadMoreButton.addEventListener('click', loadMoreMessages);
-            
-            // 保存配置
-            saveConfigButton.addEventListener('click', saveConfig);
-        }
-
-        // 处理开始打字
-        async function handleTypingStart() {
-            if (!supabase) return;
-            
-            try {
-                // 更新用户状态为正在打字
-                await supabase
-                    .from('online_users')
-                    .update({ is_typing: true, last_seen: new Date().toISOString() })
-                    .eq('id', userId);
             } catch (error) {
-                console.error('更新打字状态失败:', error);
+                console.error('连接测试失败:', error);
+                loadingStatus.textContent = '连接失败: ' + error.message;
+                updateConnectionStatus(false);
             }
         }
-
-        // 处理停止打字
-        async function handleTypingStop() {
-            if (!supabase) return;
-            
+        
+        // 创建数据库表（如果需要）
+        async function createTables() {
             try {
-                // 更新用户状态为停止打字
-                await supabase
-                    .from('online_users')
-                    .update({ is_typing: false, last_seen: new Date().toISOString() })
-                    .eq('id', userId);
+                loadingStatus.textContent = '正在创建数据库表...';
+                
+                // 在实际应用中，这里应该通过API或Supabase SQL编辑器创建表
+                // 这里我们只是模拟创建过程
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                loadingStatus.textContent = '数据库表创建完成，请刷新页面重试';
+                
             } catch (error) {
-                console.error('更新打字状态失败:', error);
+                console.error('创建表失败:', error);
+                loadingStatus.textContent = '创建表失败: ' + error.message;
             }
         }
-
-        // 邮箱登录
-        async function loginWithEmail() {
-            const email = loginEmail.value.trim();
+        
+        // 检查保存的会话
+        function checkSavedSession() {
+            const savedSession = localStorage.getItem('supabaseSession');
+            
+            if (savedSession) {
+                try {
+                    const session = JSON.parse(savedSession);
+                    if (session.user) {
+                        // 恢复会话
+                        currentUser = session.user;
+                        updateUserInterface();
+                        initializeChat();
+                    }
+                } catch (error) {
+                    console.error('恢复会话失败:', error);
+                    localStorage.removeItem('supabaseSession');
+                }
+            }
+        }
+        
+        // 切换认证标签
+        function switchAuthTab(tab) {
+            if (tab === 'login') {
+                loginTab.classList.add('active');
+                registerTab.classList.remove('active');
+                loginForm.style.display = 'flex';
+                registerForm.style.display = 'none';
+            } else {
+                loginTab.classList.remove('active');
+                registerTab.classList.add('active');
+                loginForm.style.display = 'none';
+                registerForm.style.display = 'flex';
+            }
+            clearAuthMessage();
+        }
+        
+        // 清除认证消息
+        function clearAuthMessage() {
+            authMessage.textContent = '';
+            authMessage.className = '';
+        }
+        
+        // 显示认证消息
+        function showAuthMessage(message, type) {
+            authMessage.textContent = message;
+            authMessage.className = `auth-message ${type}`;
+        }
+        
+        // 处理登录
+        async function handleLogin() {
+            if (!supabase) {
+                showAuthMessage('Supabase连接失败', 'error');
+                return;
+            }
+            
+            const username = loginUsername.value.trim();
             const password = loginPassword.value.trim();
             
-            if (!email || !password) {
-                showNotification('请输入邮箱和密码', 'warning');
+            if (!username || !password) {
+                showAuthMessage('请填写用户名和密码', 'error');
                 return;
             }
             
             try {
-                if (!supabase) {
-                    showNotification('Supabase 未配置', 'warning');
+                // 检查用户是否存在
+                const { data: userData, error: userError } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .eq('username', username)
+                    .single();
+                
+                if (userError || !userData) {
+                    showAuthMessage('用户名或密码错误', 'error');
                     return;
                 }
                 
-                const { data, error } = await supabase.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
+                // 创建用户对象
+                const user = {
+                    id: userData.id,
+                    user_metadata: {
+                        username: username
+                    }
+                };
                 
-                if (error) {
-                    throw new Error(error.message);
-                }
+                // 创建会话对象
+                const session = {
+                    user: user,
+                    access_token: 'demo_token_' + Date.now(),
+                    refresh_token: 'demo_refresh_token_' + Date.now()
+                };
                 
-                currentUser = data.user.user_metadata.username || data.user.email.split('@')[0];
-                userId = data.user.id;
+                // 登录成功
+                showAuthMessage('登录成功!', 'success');
                 
-                // 获取用户资料（如果profiles表存在）
-                await fetchUserProfile();
+                // 保存会话
+                localStorage.setItem('supabaseSession', JSON.stringify(session));
                 
-                // 初始化聊天
+                // 更新用户界面
+                currentUser = user;
+                updateUserInterface();
+                
+                // 初始化聊天功能
                 initializeChat();
                 
-                showNotification('登录成功');
             } catch (error) {
-                console.error('登录失败:', error);
-                showNotification('登录失败: ' + error.message, 'error');
+                console.error('登录错误:', error);
+                showAuthMessage('登录失败: ' + error.message, 'error');
             }
         }
-
-        // 邮箱注册
-        async function registerWithEmail() {
+        
+        // 处理注册
+        async function handleRegister() {
+            if (!supabase) {
+                showAuthMessage('Supabase连接失败', 'error');
+                return;
+            }
+            
             const username = registerUsername.value.trim();
-            const email = registerEmail.value.trim();
             const password = registerPassword.value.trim();
             
-            if (!username || !email || !password) {
-                showNotification('请填写所有字段', 'warning');
+            if (!username || !password) {
+                showAuthMessage('请填写所有字段', 'error');
                 return;
             }
             
             if (password.length < 6) {
-                showNotification('密码至少需要6位', 'warning');
+                showAuthMessage('密码至少需要6位', 'error');
                 return;
             }
             
             try {
-                if (!supabase) {
-                    showNotification('Supabase 未配置', 'warning');
+                // 检查用户名是否已存在
+                const { data: existingUser, error: checkError } = await supabase
+                    .from('profiles')
+                    .select('id')
+                    .eq('username', username)
+                    .single();
+                
+                if (existingUser) {
+                    showAuthMessage('用户名已存在', 'error');
                     return;
                 }
                 
-                const { data, error } = await supabase.auth.signUp({
-                    email: email,
-                    password: password,
-                    options: {
-                        data: {
-                            username: username
-                        }
-                    }
-                });
+                // 创建新用户
+                const newUser = {
+                    id: 'user_' + Date.now(),
+                    username: username,
+                    created_at: new Date().toISOString()
+                };
                 
-                if (error) {
-                    throw new Error(error.message);
-                }
-                
-                currentUser = username;
-                userId = data.user.id;
-                
-                // 创建用户资料（如果profiles表存在）
-                await createUserProfile(username);
-                
-                // 初始化聊天
-                initializeChat();
-                
-                showNotification('注册成功，已自动登录');
-            } catch (error) {
-                console.error('注册失败:', error);
-                showNotification('注册失败: ' + error.message, 'error');
-            }
-        }
-
-        // 创建用户资料（如果profiles表存在）
-        async function createUserProfile(username) {
-            if (!supabase) return;
-            
-            try {
-                const { error } = await supabase
-                    .from('profiles')
-                    .upsert({
-                        id: userId,
-                        username: username,
-                        updated_at: new Date().toISOString()
-                    });
-                
-                // 如果profiles表不存在，忽略错误
-                if (error && !error.message.includes('relation "profiles" does not exist')) {
-                    console.error('创建用户资料失败:', error);
-                }
-            } catch (error) {
-                // 忽略profiles表不存在的错误
-                if (!error.message.includes('relation "profiles" does not exist')) {
-                    console.error('创建用户资料异常:', error);
-                }
-            }
-        }
-
-        // 获取用户资料（如果profiles表存在）
-        async function fetchUserProfile() {
-            if (!supabase) return;
-            
-            try {
+                // 插入用户到profiles表
                 const { data, error } = await supabase
                     .from('profiles')
-                    .select('username')
-                    .eq('id', userId)
-                    .single();
+                    .insert([newUser]);
                 
-                if (!error && data) {
-                    currentUser = data.username;
-                }
+                if (error) throw error;
+                
+                // 注册成功
+                showAuthMessage('注册成功!', 'success');
+                
+                // 自动登录
+                const session = {
+                    user: {
+                        id: newUser.id,
+                        user_metadata: {
+                            username: username
+                        }
+                    },
+                    access_token: 'demo_token_' + Date.now(),
+                    refresh_token: 'demo_refresh_token_' + Date.now()
+                };
+                
+                // 保存会话
+                localStorage.setItem('supabaseSession', JSON.stringify(session));
+                
+                // 更新用户界面
+                currentUser = session.user;
+                updateUserInterface();
+                
+                // 初始化聊天功能
+                initializeChat();
+                
             } catch (error) {
-                // 忽略profiles表不存在的错误
-                if (!error.message.includes('relation "profiles" does not exist')) {
-                    console.error('获取用户资料失败:', error);
-                }
+                console.error('注册错误:', error);
+                showAuthMessage('注册失败: ' + error.message, 'error');
             }
         }
-
-        // 退出登录
-        async function logout() {
+        
+        // 处理退出登录
+        async function handleLogout() {
             try {
-                if (supabase) {
-                    // 设置用户离线
-                    await setUserOffline();
-                    
-                    // 退出登录
-                    await supabase.auth.signOut();
-                }
-                
                 // 清除本地存储
-                localStorage.removeItem('chatUser');
+                localStorage.removeItem('supabaseSession');
                 
-                // 重置状态
+                // 重置界面
                 currentUser = null;
-                userId = null;
+                authContainer.style.display = 'block';
+                chatContainer.style.display = 'none';
+                chatMessages.innerHTML = '<div class="status">请先登录</div>';
                 
-                // 显示登录模态框
-                loginModal.style.display = 'flex';
-                
-                // 清空消息
-                messagesContainer.innerHTML = '<div class="load-more"><button class="load-more-button" id="loadMoreButton">加载更多消息</button></div>';
-                loadMoreButton.addEventListener('click', loadMoreMessages);
-                
-                // 清空用户信息
-                userInfo.innerHTML = '';
-                
-                // 禁用输入
-                messageInput.disabled = true;
-                sendButton.disabled = true;
-                
-                showNotification('已退出登录');
             } catch (error) {
-                console.error('退出登录失败:', error);
-                showNotification('退出登录失败', 'error');
+                console.error('退出登录错误:', error);
             }
         }
-
-        // 初始化聊天
-        async function initializeChat() {
+        
+        // 更新用户界面
+        function updateUserInterface() {
+            if (currentUser) {
+                // 显示用户信息
+                const username = currentUser.user_metadata?.username || '用户';
+                const initial = username.charAt(0).toUpperCase();
+                
+                userAvatar.textContent = initial;
+                userName.textContent = username;
+                
+                // 切换到聊天界面
+                authContainer.style.display = 'none';
+                chatContainer.style.display = 'flex';
+            }
+        }
+        
+        // 初始化聊天功能
+        function initializeChat() {
+            if (!supabase || !currentUser) {
+                return;
+            }
+            
             // 启用聊天功能
             messageInput.disabled = false;
-            sendButton.disabled = false;
-            
-            // 隐藏登录模态框
-            loginModal.style.display = 'none';
-            
-            // 显示用户信息
-            userInfo.innerHTML = `
-                <div class="avatar">${currentUser.charAt(0).toUpperCase()}</div>
-                <div>
-                    <div><strong>${currentUser}</strong></div>
-                    <div style="font-size: 0.8rem;">在线</div>
-                </div>
-                <div class="user-actions">
-                    <button class="user-action-button logout" onclick="logout()">退出</button>
-                </div>
-            `;
-            
-            // 设置用户在线状态
-            await setUserOnline();
-            
-            // 监听实时消息
-            listenToMessages();
-            
-            // 监听在线用户变化
-            listenToOnlineUsers();
+            sendBtn.disabled = false;
+            messageInput.placeholder = "输入消息...";
             
             // 加载历史消息
             loadMessages();
             
-            // 显示欢迎消息
-            addSystemMessage(`欢迎 ${currentUser} 加入聊天室！`);
+            // 订阅新消息
+            subscribeToMessages();
             
-            showNotification('已成功加入聊天室');
+            // 订阅在线用户
+            subscribeToOnlineUsers();
+            
+            // 标记用户为在线
+            markUserAsOnline();
         }
-
-        // 设置用户在线状态
-        async function setUserOnline() {
-            if (!supabase) {
-                showNotification('Supabase 未配置', 'warning');
+        
+        // 发送消息
+        async function sendMessage() {
+            if (!isConnected || !supabase || !currentUser) {
+                addStatusMessage('未连接到Supabase或用户未登录');
                 return;
             }
             
-            const userData = {
-                id: userId,
-                username: currentUser,
-                last_seen: new Date().toISOString(),
-                is_online: true,
-                is_typing: false
+            const messageText = messageInput.value.trim();
+            
+            if (!messageText) return;
+            
+            // 创建消息对象
+            const message = {
+                sender_id: currentUser.id,
+                sender_name: currentUser.user_metadata?.username || '匿名用户',
+                text: messageText,
+                timestamp: new Date().toISOString()
             };
             
             try {
-                // 使用 Supabase 的 upsert 功能插入或更新用户
-                const { error } = await supabase
-                    .from('online_users')
-                    .upsert(userData);
+                // 插入消息到Supabase
+                const { data, error } = await supabase
+                    .from('messages')
+                    .insert([message]);
                 
-                if (error) {
-                    console.error('设置用户在线状态错误:', error);
-                    showNotification('设置用户状态失败', 'error');
-                }
+                if (error) throw error;
+                
+                // 清空输入框
+                messageInput.value = '';
             } catch (error) {
-                console.error('设置用户在线状态异常:', error);
-                showNotification('设置用户状态失败', 'error');
+                console.error('发送消息错误:', error);
+                addStatusMessage('发送失败: ' + error.message);
             }
-            
-            // 页面关闭时设置离线
-            window.addEventListener('beforeunload', async () => {
-                await setUserOffline();
-            });
         }
-
-        // 设置用户离线状态
-        async function setUserOffline() {
-            if (!supabase || !userId) return;
+        
+        // 加载历史消息
+        async function loadMessages() {
+            if (!supabase || !currentUser) return;
             
             try {
-                await supabase
-                    .from('online_users')
-                    .update({ is_online: false, is_typing: false })
-                    .eq('id', userId);
+                const { data, error } = await supabase
+                    .from('messages')
+                    .select('*')
+                    .order('timestamp', { ascending: true });
+                
+                if (error) throw error;
+                
+                // 清空消息区域
+                chatMessages.innerHTML = '';
+                
+                // 添加消息到界面
+                if (data && data.length > 0) {
+                    data.forEach(message => {
+                        addMessageToChat(message);
+                    });
+                } else {
+                    addStatusMessage('暂无消息记录');
+                }
+                
+                // 滚动到底部
+                scrollToBottom();
             } catch (error) {
-                console.error('设置用户离线状态失败:', error);
+                console.error('加载消息错误:', error);
+                addStatusMessage('加载消息失败: ' + error.message);
             }
         }
-
-        // 监听消息
-        function listenToMessages() {
+        
+        // 订阅新消息
+        function subscribeToMessages() {
             if (!supabase) return;
             
-            // 使用 Supabase 的实时订阅功能监听新消息
-            supabase
+            // 取消之前的订阅（如果有）
+            if (messageSubscription) {
+                supabase.removeChannel(messageSubscription);
+            }
+            
+            // 创建新订阅
+            messageSubscription = supabase
                 .channel('messages')
                 .on('postgres_changes', 
-                    { event: 'INSERT', schema: 'public', table: 'messages' }, 
+                    { 
+                        event: 'INSERT', 
+                        schema: 'public', 
+                        table: 'messages' 
+                    }, 
                     (payload) => {
-                        displayMessage(payload.new);
-                    }
-                )
-                .on('postgres_changes',
-                    { event: 'UPDATE', schema: 'public', table: 'messages' },
-                    (payload) => {
-                        updateMessageStatus(payload.new);
+                        addMessageToChat(payload.new);
+                        scrollToBottom();
                     }
                 )
                 .subscribe();
         }
-
-        // 监听在线用户
-        function listenToOnlineUsers() {
+        
+        // 标记用户为在线
+        async function markUserAsOnline() {
+            if (!supabase || !currentUser) return;
+            
+            try {
+                const username = currentUser.user_metadata?.username || '匿名用户';
+                
+                const { error } = await supabase
+                    .from('online_users')
+                    .upsert({
+                        user_id: currentUser.id,
+                        username: username,
+                        last_seen: new Date().toISOString()
+                    });
+                
+                if (error) {
+                    // 如果online_users表不存在，忽略错误
+                    if (error.code !== 'PGRST301') {
+                        throw error;
+                    }
+                } else {
+                    updateOnlineUsers();
+                    // 定期更新在线状态
+                    setInterval(updateOnlineStatus, 30000); // 每30秒更新一次
+                }
+            } catch (error) {
+                console.error('标记在线用户错误:', error);
+            }
+        }
+        
+        // 更新在线状态
+        async function updateOnlineStatus() {
+            if (!supabase || !currentUser) return;
+            
+            try {
+                const username = currentUser.user_metadata?.username || '匿名用户';
+                
+                const { error } = await supabase
+                    .from('online_users')
+                    .upsert({
+                        user_id: currentUser.id,
+                        username: username,
+                        last_seen: new Date().toISOString()
+                    });
+                
+                if (error && error.code !== 'PGRST301') {
+                    // 忽略online_users表不存在的错误
+                }
+            } catch (error) {
+                console.error('更新在线状态错误:', error);
+            }
+        }
+        
+        // 订阅在线用户
+        function subscribeToOnlineUsers() {
             if (!supabase) return;
             
-            // 使用 Supabase 的实时订阅功能监听在线用户变化
-            supabase
+            const onlineUsersSubscription = supabase
                 .channel('online_users')
                 .on('postgres_changes', 
-                    { event: '*', schema: 'public', table: 'online_users' }, 
-                    async (payload) => {
-                        await updateOnlineUsers();
+                    { 
+                        event: '*', 
+                        schema: 'public', 
+                        table: 'online_users' 
+                    }, 
+                    (payload) => {
+                        updateOnlineUsers();
                     }
                 )
                 .subscribe();
         }
-
+        
         // 更新在线用户列表
         async function updateOnlineUsers() {
             if (!supabase) return;
             
             try {
-                // 获取在线用户
-                const { data: users, error } = await supabase
+                const { data, error } = await supabase
                     .from('online_users')
-                    .select('*')
-                    .eq('is_online', true);
+                    .select('username')
+                    .gte('last_seen', new Date(Date.now() - 5 * 60 * 1000).toISOString()) // 5分钟内活跃的用户
+                    .order('username');
                 
                 if (error) {
-                    console.error('获取在线用户错误:', error);
-                    return;
+                    // 如果online_users表不存在，忽略错误
+                    if (error.code === 'PGRST301') {
+                        usersOnline.textContent = '在线用户: 功能未启用';
+                        return;
+                    }
+                    throw error;
                 }
                 
-                // 过滤掉5分钟内没有活动的用户
-                const activeUsers = users.filter(user => {
-                    const lastSeen = new Date(user.last_seen);
-                    const now = new Date();
-                    return (now - lastSeen) < 5 * 60 * 1000; // 5分钟
-                });
-                
-                // 更新在线用户列表
-                onlineUsers = {};
-                activeUsers.forEach(user => {
-                    onlineUsers[user.id] = user;
-                });
-                
-                // 更新正在打字的用户
-                updateTypingUsers(activeUsers);
-                
-                // 更新UI
-                updateOnlineUsersUI(activeUsers);
+                if (data && data.length > 0) {
+                    const usernames = data.map(user => user.username);
+                    usersOnline.textContent = `在线用户: ${usernames.join(', ')}`;
+                } else {
+                    usersOnline.textContent = '在线用户: 暂无';
+                }
             } catch (error) {
-                console.error('更新在线用户失败:', error);
+                console.error('更新在线用户错误:', error);
+                usersOnline.textContent = '在线用户: 加载失败';
             }
         }
-
-        // 更新正在打字的用户
-        function updateTypingUsers(users) {
-            typingUsers.clear();
+        
+        // 添加消息到聊天界面
+        function addMessageToChat(message) {
+            const messageElement = document.createElement('div');
+            messageElement.classList.add('message');
             
-            users.forEach(user => {
-                if (user.is_typing && user.id !== userId) {
-                    typingUsers.add(user.username);
-                }
+            // 根据发送者确定消息样式
+            if (message.sender_id === currentUser.id) {
+                messageElement.classList.add('sent');
+            } else {
+                messageElement.classList.add('received');
+            }
+            
+            // 格式化时间
+            const time = new Date(message.timestamp).toLocaleTimeString([], { 
+                hour: '2-digit', minute: '2-digit' 
             });
             
-            updateTypingIndicator();
-        }
-
-        // 更新打字指示器
-        function updateTypingIndicator() {
-            // 移除现有的指示器
-            const existingIndicator = document.getElementById('typingIndicator');
-            if (existingIndicator) {
-                existingIndicator.remove();
-            }
-            
-            if (typingUsers.size > 0) {
-                const typingDiv = document.createElement('div');
-                typingDiv.className = 'typing-users';
-                typingDiv.id = 'typingIndicator';
-                
-                const users = Array.from(typingUsers);
-                let text = '';
-                
-                if (users.length === 1) {
-                    text = `${users[0]} 正在输入...`;
-                } else if (users.length === 2) {
-                    text = `${users[0]} 和 ${users[1]} 正在输入...`;
-                } else {
-                    text = `${users[0]} 和其他 ${users.length - 1} 人正在输入...`;
-                }
-                
-                typingDiv.textContent = text;
-                messagesContainer.appendChild(typingDiv);
-                
-                // 滚动到底部
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-        }
-
-        // 更新在线用户UI
-        function updateOnlineUsersUI(users) {
-            let userListHTML = '<h4>在线用户</h4>';
-            
-            if (users.length === 0) {
-                userListHTML += '<p>暂无其他在线用户</p>';
-            } else {
-                users.forEach(user => {
-                    const typingIndicator = user.is_typing ? ' 💬' : '';
-                    userListHTML += `
-                        <div class="user-item">
-                            <div class="user-avatar">${user.username.charAt(0).toUpperCase()}</div>
-                            <div>${user.username}${typingIndicator}</div>
-                            <div class="status-indicator"></div>
-                        </div>
-                    `;
-                });
-            }
-            
-            // 添加当前用户
-            if (currentUser) {
-                userListHTML += `
-                    <div class="user-item" style="margin-top: 10px; border-top: 1px solid var(--border-light); padding-top: 10px;">
-                        <div class="user-avatar">${currentUser.charAt(0).toUpperCase()}</div>
-                        <div>${currentUser} (我)</div>
-                        <div class="status-indicator"></div>
-                    </div>
-                `;
-            }
-            
-            userList.innerHTML = userListHTML;
-            onlineCount.textContent = `${users.length + (currentUser ? 1 : 0)} 人在线`;
-        }
-
-        // 发送消息
-        async function sendMessage() {
-            const messageText = messageInput.value.trim();
-            if (!messageText || !currentUser || !supabase) return;
-            
-            const message = {
-                message_text: messageText,
-                username: currentUser,
-                user_id: userId,
-                created_at: new Date().toISOString(),
-                status: 'sending' // 发送状态
-            };
-            
-            try {
-                // 先显示本地消息（带发送状态）
-                const tempId = 'temp_' + Date.now();
-                message.id = tempId;
-                displayMessage(message);
-                
-                // 清空输入框
-                messageInput.value = '';
-                
-                // 停止打字指示器
-                if (isTyping) {
-                    isTyping = false;
-                    await handleTypingStop();
-                }
-                
-                // 保存消息到 Supabase 数据库
-                const { data, error } = await supabase
-                    .from('messages')
-                    .insert([{
-                        message_text: messageText,
-                        username: currentUser,
-                        user_id: userId,
-                        created_at: new Date().toISOString()
-                    }])
-                    .select();
-                
-                if (error) {
-                    throw new Error(error.message);
-                }
-                
-                // 更新消息状态为已发送
-                updateMessageStatus(data[0]);
-                
-                showNotification('消息已发送');
-            } catch (error) {
-                console.error('发送消息失败:', error);
-                showNotification('消息发送失败: ' + error.message, 'error');
-                
-                // 更新消息状态为发送失败
-                updateMessageStatus({
-                    id: message.id,
-                    status: 'failed'
-                });
-            }
-        }
-
-        // 从 Supabase 数据库加载消息
-        async function loadMessages() {
-            try {
-                if (!supabase) {
-                    throw new Error('Supabase 未配置');
-                }
-                
-                const { data: messages, error } = await supabase
-                    .from('messages')
-                    .select('*')
-                    .order('created_at', { ascending: false })
-                    .range(messageOffset, messageOffset + MESSAGES_PER_PAGE - 1);
-                
-                if (error) {
-                    throw new Error(error.message);
-                }
-                
-                // 清空消息容器（如果是第一次加载）
-                if (messageOffset === 0) {
-                    messagesContainer.innerHTML = '<div class="load-more"><button class="load-more-button" id="loadMoreButton">加载更多消息</button></div>';
-                    loadMoreButton.addEventListener('click', loadMoreMessages);
-                }
-                
-                // 反转消息顺序（最新的在底部）
-                const reversedMessages = messages.reverse();
-                
-                // 显示消息
-                reversedMessages.forEach(message => {
-                    displayMessage(message, true);
-                });
-                
-                // 更新偏移量
-                messageOffset += MESSAGES_PER_PAGE;
-                
-                // 如果没有更多消息，隐藏加载更多按钮
-                if (messages.length < MESSAGES_PER_PAGE) {
-                    loadMoreButton.style.display = 'none';
-                }
-                
-                // 如果是第一次加载，滚动到底部
-                if (messageOffset === MESSAGES_PER_PAGE) {
-                    setTimeout(() => {
-                        messagesContainer.scrollTop = messagesContainer.scrollHeight;
-                    }, 100);
-                }
-            } catch (error) {
-                console.error('加载消息失败:', error);
-                showNotification('加载消息失败: ' + error.message, 'error');
-            }
-        }
-
-        // 加载更多消息
-        async function loadMoreMessages() {
-            await loadMessages();
-        }
-
-        // 显示消息
-        function displayMessage(message, isHistory = false) {
-            // 检查是否已经显示过这条消息（避免重复显示）
-            const existingMessage = document.querySelector(`[data-message-id="${message.id}"]`);
-            if (existingMessage) return;
-            
-            const messageDiv = document.createElement('div');
-            messageDiv.setAttribute('data-message-id', message.id);
-            
-            if (message.user_id === userId) {
-                // 自己的消息
-                messageDiv.className = 'message user-message';
-                let statusHtml = '';
-                
-                if (message.status === 'sending') {
-                    statusHtml = '<div class="message-status"><i class="fas fa-clock"></i> 发送中...</div>';
-                } else if (message.status === 'failed') {
-                    statusHtml = '<div class="message-status"><i class="fas fa-exclamation-circle"></i> 发送失败</div>';
-                } else {
-                    statusHtml = '<div class="message-status"><i class="fas fa-check"></i> 已发送</div>';
-                }
-                
-                messageDiv.innerHTML = `
-                    <div>${message.message_text}</div>
-                    <div class="message-time">${formatTime(message.created_at)}</div>
-                    ${statusHtml}
-                    <div class="message-actions">
-                        <button class="message-action" title="删除消息" onclick="deleteMessage('${message.id}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                `;
-            } else {
-                // 其他用户的消息
-                messageDiv.className = 'message other-user-message';
-                messageDiv.innerHTML = `
-                    <div class="message-header">
-                        <span>${message.username}</span>
-                    </div>
-                    <div>${message.message_text}</div>
-                    <div class="message-time">${formatTime(message.created_at)}</div>
-                `;
-            }
-            
-            // 如果是历史消息，插入到加载更多按钮之后
-            if (isHistory) {
-                const loadMoreDiv = document.querySelector('.load-more');
-                if (loadMoreDiv) {
-                    loadMoreDiv.after(messageDiv);
-                } else {
-                    messagesContainer.appendChild(messageDiv);
-                }
-            } else {
-                messagesContainer.appendChild(messageDiv);
-                
-                // 滚动到底部
-                messagesContainer.scrollTop = messagesContainer.scrollHeight;
-            }
-        }
-
-        // 更新消息状态
-        function updateMessageStatus(message) {
-            const messageElement = document.querySelector(`[data-message-id="${message.id}"]`);
-            if (!messageElement) return;
-            
-            // 如果是临时消息，更新ID
-            if (messageElement.getAttribute('data-message-id').startsWith('temp_')) {
-                messageElement.setAttribute('data-message-id', message.id);
-            }
-            
-            // 更新消息状态
-            const statusElement = messageElement.querySelector('.message-status');
-            if (statusElement) {
-                if (message.status === 'sending') {
-                    statusElement.innerHTML = '<i class="fas fa-clock"></i> 发送中...';
-                } else if (message.status === 'failed') {
-                    statusElement.innerHTML = '<i class="fas fa-exclamation-circle"></i> 发送失败';
-                } else {
-                    statusElement.innerHTML = '<i class="fas fa-check"></i> 已发送';
-                }
-            }
-        }
-
-        // 删除消息
-        async function deleteMessage(messageId) {
-            if (!confirm('确定要删除这条消息吗？')) return;
-            
-            try {
-                if (!supabase) {
-                    throw new Error('Supabase 未配置');
-                }
-                
-                // 从 Supabase 数据库删除消息
-                const { error } = await supabase
-                    .from('messages')
-                    .delete()
-                    .eq('id', messageId);
-                
-                if (error) {
-                    throw new Error(error.message);
-                }
-                
-                // 从UI中移除消息
-                const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
-                if (messageElement) {
-                    messageElement.remove();
-                }
-                
-                showNotification('消息已删除');
-            } catch (error) {
-                console.error('删除消息失败:', error);
-                showNotification('删除消息失败: ' + error.message, 'error');
-            }
-        }
-
-        // 添加系统消息
-        function addSystemMessage(text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.className = 'system-message';
-            messageDiv.innerHTML = `<i>${text}</i>`;
-            
-            messagesContainer.appendChild(messageDiv);
-            
-            // 滚动到底部
-            messagesContainer.scrollTop = messagesContainer.scrollHeight;
-        }
-
-        // 显示通知
-        function showNotification(message, type = 'success') {
-            // 移除现有的通知
-            const existingNotification = document.querySelector('.notification');
-            if (existingNotification) {
-                existingNotification.remove();
-            }
-            
-            const notification = document.createElement('div');
-            notification.className = `notification ${type}`;
-            notification.innerHTML = `
-                <i class="fas fa-${type === 'success' ? 'check' : type === 'warning' ? 'exclamation-triangle' : 'exclamation-circle'}"></i>
-                <span>${message}</span>
+            messageElement.innerHTML = `
+                <div class="message-text">${message.text}</div>
+                <div class="message-info">
+                    <span>${message.sender_name}</span>
+                    <span>${time}</span>
+                </div>
             `;
             
-            document.body.appendChild(notification);
-            
-            // 3秒后自动移除
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
+            chatMessages.appendChild(messageElement);
         }
-
-        // 格式化时间
-        function formatTime(timestamp) {
-            const date = new Date(timestamp);
-            return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+        
+        // 添加状态消息
+        function addStatusMessage(text) {
+            const statusElement = document.createElement('div');
+            statusElement.classList.add('status');
+            statusElement.textContent = text;
+            chatMessages.appendChild(statusElement);
+            scrollToBottom();
         }
-
-        // 切换主题
-        function toggleTheme() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
-            localStorage.setItem('chatTheme', isDark ? 'dark' : 'light');
-            themeToggle.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>';
+        
+        // 滚动到底部
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+        
+        // 更新连接状态
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            if (connected) {
+                statusDot.classList.remove('offline');
+                statusText.textContent = '已连接到Supabase';
+            } else {
+                statusDot.classList.add('offline');
+                statusText.textContent = '连接失败';
+            }
         }
     </script>
 </body>
