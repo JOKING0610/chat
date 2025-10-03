@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>聊天室</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <title>网站维护中 - 即将恢复</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 样式保持不变，与之前相同 */
         * {
             margin: 0;
             padding: 0;
@@ -15,529 +14,58 @@
         }
         
         body {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            height: 100vh;
-            overflow: hidden;
+            background: linear-gradient(135deg, #1a2980, #26d0ce);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            text-align: center;
+            overflow-x: hidden;
         }
         
         .container {
-            display: flex;
+            max-width: 800px;
             width: 100%;
-            height: 100vh;
-        }
-        
-        .auth-container, .chat-container {
-            background: white;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-            overflow: hidden;
-        }
-        
-        .auth-container {
-            width: 400px;
-            margin: auto;
-            border-radius: 12px;
-            padding: 30px;
-        }
-        
-        .chat-container {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-        }
-        
-        .chat-header {
-            background: #4a6ee0;
-            color: white;
-            padding: 15px 25px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-            flex-shrink: 0;
-        }
-        
-        .chat-header h1 {
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        
-        .user-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            background: rgba(255, 255, 255, 0.2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-        
-        .header-buttons {
-            display: flex;
-            gap: 10px;
-        }
-        
-        .header-btn {
-            padding: 8px 16px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: background 0.3;
-        }
-        
-        .header-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .auth-tabs {
-            display: flex;
-            margin-bottom: 25px;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .auth-tab {
-            flex: 1;
-            padding: 12px;
-            text-align: center;
-            cursor: pointer;
-            border-bottom: 2px solid transparent;
-            transition: all 0.3s;
-        }
-        
-        .auth-tab.active {
-            border-bottom: 2px solid #4a6ee0;
-            color: #4a6ee0;
-            font-weight: 600;
-        }
-        
-        .auth-form {
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-        }
-        
-        .form-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .form-label {
-            font-size: 0.95rem;
-            color: #555;
-            font-weight: 500;
-        }
-        
-        .form-input {
-            padding: 14px;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            outline: none;
-            font-size: 1rem;
-            transition: border 0.3s;
-        }
-        
-        .form-input:focus {
-            border-color: #4a6ee0;
-        }
-        
-        .auth-btn {
-            padding: 14px;
-            background: #4a6ee0;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            margin-top: 10px;
-            font-size: 1rem;
-            transition: background 0.3s;
-        }
-        
-        .auth-btn:hover {
-            background: #3a5ed0;
-        }
-        
-        .auth-message {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            font-size: 0.95rem;
-        }
-        
-        .auth-message.success {
-            background: #e7f7ed;
-            color: #2d7730;
-        }
-        
-        .auth-message.error {
-            background: #fde8e8;
-            color: #c53030;
-        }
-        
-        .chat-content {
-            display: flex;
-            flex: 1;
-            overflow: hidden;
-            position: relative;
-        }
-        
-        .friends-sidebar {
-            width: 280px;
-            background: #f8f9fa;
-            border-right: 1px solid #e1e8ed;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            flex-shrink: 0;
-            transition: transform 0.3s ease;
-        }
-        
-        .friends-sidebar.hidden {
-            transform: translateX(-100%);
-            position: absolute;
-            height: 100%;
-            z-index: 10;
-        }
-        
-        .toggle-sidebar {
-            position: absolute;
-            top: 15px;
-            left: 15px;
-            z-index: 20;
-            background: #4a6ee0;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 0.9rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        
-        .friends-header {
-            padding: 15px 20px;
-            background: #f0f8ff;
-            border-bottom: 1px solid #e1e8ed;
-            font-weight: 600;
-            color: #4a6ee0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .close-sidebar {
-            background: none;
-            border: none;
-            font-size: 1.2rem;
-            cursor: pointer;
-            color: #4a6ee0;
-        }
-        
-        .friend-code-section {
-            padding: 15px 20px;
-            border-bottom: 1px solid #e1e8ed;
-            background: white;
-        }
-        
-        .friend-code {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-        
-        .friend-code-text {
-            font-family: monospace;
-            background: #f5f5f5;
-            padding: 8px 12px;
-            border-radius: 6px;
-            flex: 1;
-            font-size: 0.9rem;
-            letter-spacing: 1px;
-        }
-        
-        .copy-btn {
-            background: #4a6ee0;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 6px 10px;
-            cursor: pointer;
-            font-size: 0.8rem;
-        }
-        
-        .add-friend-section {
-            padding: 15px 20px;
-            border-bottom: 1px solid #e1e8ed;
-            background: white;
-        }
-        
-        .add-friend-input {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
-        
-        .friend-input {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            font-size: 0.9rem;
-        }
-        
-        .add-btn {
-            background: #4a6ee0;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 8px 12px;
-            cursor: pointer;
-            font-size: 0.9rem;
-        }
-        
-        .friends-list {
-            flex: 1;
-            overflow-y: auto;
-            padding: 10px 0;
-        }
-        
-        .friend-item {
-            padding: 12px 20px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            cursor: pointer;
-            transition: background 0.2s;
-        }
-        
-        .friend-item:hover {
-            background: #f0f8ff;
-        }
-        
-        .friend-item.active {
-            background: #e6f0ff;
-            border-left: 3px solid #4a6ee0;
-        }
-        
-        .friend-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            background: #4a6ee0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: bold;
-            font-size: 0.9rem;
-        }
-        
-        .friend-name {
-            flex: 1;
-            font-weight: 500;
-        }
-        
-        .friend-status {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #4CAF50;
-        }
-        
-        .friend-status.offline {
-            background: #ccc;
-        }
-        
-        .chat-area {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        
-        .chat-messages {
-            flex: 1;
-            padding: 25px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 18px;
-            background: #f8f9fa;
-        }
-        
-        .message {
-            max-width: 70%;
-            padding: 14px 18px;
-            border-radius: 18px;
-            position: relative;
-            line-height: 1.5;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        }
-        
-        .message.sent {
-            align-self: flex-end;
-            background: #4a6ee0;
-            color: white;
-            border-bottom-right-radius: 6px;
-        }
-        
-        .message.received {
-            align-self: flex-start;
-            background: white;
-            color: #333;
-            border-bottom-left-radius: 6px;
-            border: 1px solid #e1e8ed;
-        }
-        
-        .message-info {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 8px;
-            font-size: 0.7rem;
-            opacity: 0.8;
-        }
-        
-        .message-time {
-            margin-top: 4px;
-        }
-        
-        .recall-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 2px 6px;
-            cursor: pointer;
-            font-size: 0.6rem;
-            margin-left: 8px;
-            opacity: 0;
-            transition: opacity 0.3s;
-        }
-        
-        .message.sent:hover .recall-btn {
-            opacity: 1;
-        }
-        
-        .recall-btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-        }
-        
-        .recalled-message {
-            font-style: italic;
-            opacity: 0.7;
-        }
-        
-        .chat-input-container {
-            padding: 15px;
-            border-top: 1px solid #eee;
-            display: flex;
-            gap: 10px;
-            background: white;
-            flex-shrink: 0;
-            align-items: center;
-        }
-        
-        .chat-input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #ddd;
-            border-radius: 24px;
-            outline: none;
-            font-size: 1rem;
-            transition: border 0.3s;
-            min-height: 50px;
-        }
-        
-        .chat-input:focus {
-            border-color: #4a6ee0;
-        }
-        
-        .send-btn {
-            padding: 12px 20px;
-            background: #4a6ee0;
-            color: white;
-            border: none;
-            border-radius: 24px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background 0.3s;
-            min-width: 70px;
-            height: 50px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .send-btn:hover {
-            background: #3a5ed0;
-        }
-        
-        .send-btn:disabled {
-            background: #ccc;
-            cursor: not-allowed;
-        }
-        
-        .status {
-            text-align: center;
-            padding: 15px;
-            color: #666;
-            font-size: 1rem;
-        }
-        
-        .connection-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 0.9rem;
-            padding: 10px 25px;
-            background: #f9f9f9;
-            border-bottom: 1px solid #eee;
-            flex-shrink: 0;
-        }
-        
-        .status-dot {
-            width: 10px;
-            height: 10px;
-            border-radius: 50%;
-            background: #4CAF50;
-        }
-        
-        .status-dot.offline {
-            background: #f44336;
-        }
-        
-        .loading-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
+            background: rgba(0, 0, 0, 0.4);
+            border-radius: 20px;
             padding: 40px;
+            box-shadow: 0 15px 30px rgba(0, 0, 0, 0.3);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
         }
         
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid #f3f3f3;
-            border-top: 4px solid #4a6ee0;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        .logo {
+            font-size: 3rem;
             margin-bottom: 20px;
+            color: #4facfe;
+        }
+        
+        h1 {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            background: linear-gradient(to right, #fff, #4facfe);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+        }
+        
+        .subtitle {
+            font-size: 1.5rem;
+            margin-bottom: 30px;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+        
+        .maintenance-icon {
+            font-size: 6rem;
+            margin: 30px 0;
+            color: #4facfe;
+            position: relative;
+            animation: spin 8s linear infinite;
         }
         
         @keyframes spin {
@@ -545,1503 +73,294 @@
             100% { transform: rotate(360deg); }
         }
         
-        /* 新增emoji选择器样式 */
-        .emoji-btn {
-            background: none;
-            border: none;
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 8px;
-            border-radius: 8px;
-            transition: background 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 40px;
-            height: 40px;
+        .status-container {
+            margin: 30px 0;
+            position: relative;
         }
         
-        .emoji-btn:hover {
-            background: #f0f0f0;
-        }
-        
-        .emoji-picker {
-            position: absolute;
-            bottom: 70px;
-            left: 15px;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 12px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-            padding: 15px;
-            width: 320px;
-            max-height: 300px;
-            overflow-y: auto;
-            z-index: 100;
-            display: none;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        
-        .emoji-picker.show {
-            display: flex;
-        }
-        
-        .emoji-item {
-            font-size: 1.5rem;
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 6px;
-            transition: background 0.2s;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .emoji-item:hover {
-            background: #f0f0f0;
-        }
-        
-        .emoji-category {
-            width: 100%;
+        .status {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50px;
+            padding: 12px 30px;
+            display: inline-block;
             font-weight: 600;
-            color: #4a6ee0;
-            margin-top: 10px;
-            margin-bottom: 5px;
+            letter-spacing: 1px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            min-width: 300px;
+            transition: all 0.3s ease;
+        }
+        
+        .status.error {
+            background: rgba(255, 50, 50, 0.2);
+            color: #ff9e9e;
+            animation: pulse 1.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(255, 50, 50, 0.4); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 50, 50, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 50, 50, 0); }
+        }
+        
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            margin: 15px 0;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(to right, #4facfe, #00f2fe);
+            border-radius: 5px;
+            transition: width 0.5s ease;
+        }
+        
+        .progress-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+            text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+        }
+        
+        .info-box {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .info-box h3 {
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+            color: #4facfe;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .info-box p {
+            margin-bottom: 10px;
+            line-height: 1.6;
+        }
+        
+        .info-box ul {
+            padding-left: 20px;
+            margin: 15px 0;
+        }
+        
+        .info-box li {
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+        
+        .footer {
+            margin-top: 30px;
+            opacity: 0.8;
             font-size: 0.9rem;
         }
         
-        /* 滚动条样式 */
-        .chat-messages::-webkit-scrollbar,
-        .friends-list::-webkit-scrollbar {
-            width: 8px;
+        .retry-indicator {
+            display: none;
+            margin: 15px 0;
+            font-size: 1.2rem;
+            color: #ff9e9e;
         }
         
-        .chat-messages::-webkit-scrollbar-track,
-        .friends-list::-webkit-scrollbar-track {
-            background: #f1f1f1;
-            border-radius: 4px;
+        .retry-indicator.show {
+            display: block;
+            animation: fadeIn 0.5s;
         }
         
-        .chat-messages::-webkit-scrollbar-thumb,
-        .friends-list::-webkit-scrollbar-thumb {
-            background: #c1c1c1;
-            border-radius: 4px;
+        .retry-indicator i {
+            animation: pulse 1.5s infinite;
         }
         
-        .chat-messages::-webkit-scrollbar-thumb:hover,
-        .friends-list::-webkit-scrollbar-thumb:hover {
-            background: #a8a8a8;
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         
-        /* 移动端优化 */
-        @media (max-width: 768px) {
+        .contact-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        
+        .contact-info p {
+            margin: 10px 0;
+            line-height: 1.6;
+        }
+        
+        .contact-info i {
+            margin-right: 10px;
+            color: #4facfe;
+        }
+        
+        @media (max-width: 600px) {
             .container {
-                flex-direction: column;
+                padding: 30px 20px;
             }
             
-            .auth-container {
-                width: 100%;
-                max-width: 100%;
-                margin: 0;
-                border-radius: 0;
-                height: 100vh;
-                justify-content: center;
-                display: flex;
-                flex-direction: column;
-                padding: 20px;
+            h1 {
+                font-size: 2.5rem;
             }
             
-            .chat-container {
-                height: 100vh;
-                width: 100%;
+            .maintenance-icon {
+                font-size: 4rem;
             }
             
-            .chat-header {
-                padding: 12px 15px;
-            }
-            
-            .chat-header h1 {
-                font-size: 1.3rem;
-            }
-            
-            .header-buttons {
-                gap: 6px;
-            }
-            
-            .header-btn {
-                padding: 6px 10px;
-                font-size: 0.8rem;
-            }
-            
-            .user-info {
-                gap: 8px;
-            }
-            
-            .user-avatar {
-                width: 35px;
-                height: 35px;
-                font-size: 1rem;
-            }
-            
-            .friends-sidebar {
-                width: 100%;
-                position: absolute;
-                z-index: 10;
-                height: 100%;
-            }
-            
-            .friends-sidebar.hidden {
-                transform: translateX(-100%);
-            }
-            
-            .toggle-sidebar {
-                display: flex;
-            }
-            
-            .chat-area {
-                width: 100%;
-            }
-            
-            .chat-messages {
-                padding: 15px;
-                gap: 15px;
-            }
-            
-            .message {
-                max-width: 85%;
-                padding: 12px 15px;
-            }
-            
-            .chat-input-container {
-                padding: 12px;
-                gap: 8px;
-            }
-            
-            .chat-input {
-                padding: 12px 15px;
-                font-size: 16px;
-                min-height: 48px;
-            }
-            
-            .send-btn {
-                padding: 10px 16px;
-                min-width: 60px;
-                height: 48px;
+            .status {
+                min-width: 250px;
+                padding: 10px 20px;
                 font-size: 0.9rem;
             }
             
-            .connection-status {
-                padding: 8px 15px;
+            .info-box, .contact-info {
+                padding: 20px;
             }
-            
-            .emoji-picker {
-                width: 280px;
-                left: 10px;
-                bottom: 65px;
-            }
-        }
-        
-        @media (max-width: 480px) {
-            .auth-container {
-                padding: 15px;
-            }
-            
-            .chat-header h1 {
-                font-size: 1.2rem;
-            }
-            
-            .message {
-                max-width: 90%;
-            }
-            
-            .chat-input {
-                min-height: 44px;
-                padding: 10px 14px;
-            }
-            
-            .send-btn {
-                min-width: 55px;
-                height: 44px;
-                padding: 8px 14px;
-                font-size: 0.85rem;
-            }
-            
-            .emoji-picker {
-                width: 260px;
-                left: 5px;
-                bottom: 60px;
-            }
-        }
-        
-        /* 防止iOS输入框聚焦时页面缩放 */
-        @media screen and (-webkit-min-device-pixel-ratio:0) {
-            select,
-            textarea,
-            input {
-                font-size: 16px !important;
-            }
-        }
-        
-        /* 临时消息样式 */
-        .message.pending {
-            opacity: 0.7;
-        }
-        
-        .message.failed {
-            opacity: 0.5;
-            background-color: #ffcccc;
-        }
-        
-        .retry-btn {
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 2px 6px;
-            cursor: pointer;
-            font-size: 0.6rem;
-            margin-left: 8px;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="auth-container" id="authContainer">
-            <div class="loading-container" id="loadingContainer">
-                <div class="loading-spinner"></div>
-                <div class="status" id="loadingStatus">正在初始化聊天室...</div>
+        <div class="logo">
+            <i class="fas fa-cube"></i>
+        </div>
+        <h1>网站维护中</h1>
+        <p class="subtitle">我们正在进行系统升级以提供更好的服务体验<br>感谢您的耐心等待</p>
+        
+        <div class="maintenance-icon">
+            <i class="fas fa-cogs"></i>
+        </div>
+        
+        <div class="status-container">
+            <div class="status" id="status-text">
+                <i class="fas fa-sync-alt"></i> 维护进度：<span id="progress-text">0%</span>
             </div>
             
-            <div id="authForms" style="display: none;">
-                <h2 style="text-align: center; margin-bottom: 25px; color: #4a6ee0;">欢迎使用JOKING的聊天室</h2>
-                <div class="auth-tabs">
-                    <div class="auth-tab active" id="loginTab">登录</div>
-                    <div class="auth-tab" id="registerTab">注册</div>
-                </div>
-                
-                <div class="auth-form" id="loginForm">
-                    <div class="form-group">
-                        <label class="form-label">用户名</label>
-                        <input type="text" class="form-input" id="loginUsername" placeholder="请输入用户名">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">密码</label>
-                        <input type="password" class="form-input" id="loginPassword" placeholder="请输入密码">
-                    </div>
-                    
-                    <button class="auth-btn" id="loginBtn">登录</button>
-                </div>
-                
-                <div class="auth-form" id="registerForm" style="display: none;">
-                    <div class="form-group">
-                        <label class="form-label">用户名</label>
-                        <input type="text" class="form-input" id="registerUsername" placeholder="请输入用户名">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">密码</label>
-                        <input type="password" class="form-input" id="registerPassword" placeholder="请输入密码（至少6位）">
-                    </div>
-                    
-                    <button class="auth-btn" id="registerBtn">注册</button>
-                </div>
-                
-                <div id="authMessage"></div>
+            <div class="progress-container">
+                <div class="progress-bar" id="progress-bar"></div>
+                <div class="progress-label" id="progress-label">0%</div>
             </div>
         </div>
         
-        <div class="chat-container" id="chatContainer" style="display: none;">
-            <div class="chat-header">
-                <h1>聊天室</h1>
-                <div class="user-info">
-                    <div class="user-avatar" id="userAvatar">U</div>
-                    <span id="userName">用户</span>
-                    <div class="header-buttons">
-                        <button class="header-btn" id="friendsBtn">好友</button>
-                        <button class="header-btn" id="logoutBtn">退出</button>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="connection-status">
-                <div class="status-dot offline" id="statusDot"></div>
-                <span id="statusText">未连接</span>
-            </div>
-            
-            <div class="chat-content">
-                <div class="friends-sidebar hidden" id="friendsSidebar">
-                    <div class="friends-header">
-                        <span>好友列表</span>
-                        <button class="close-sidebar" id="closeSidebar">×</button>
-                    </div>
-                    
-                    <div class="friend-code-section">
-                        <div class="form-label">我的好友码</div>
-                        <div class="friend-code">
-                            <div class="friend-code-text" id="friendCodeText">加载中...</div>
-                            <button class="copy-btn" id="copyFriendCodeBtn">复制</button>
-                        </div>
-                    </div>
-                    
-                    <div class="add-friend-section">
-                        <div class="form-label">添加好友</div>
-                        <div class="add-friend-input">
-                            <input type="text" class="friend-input" id="friendCodeInput" placeholder="输入好友码">
-                            <button class="add-btn" id="addFriendBtn">添加</button>
-                        </div>
-                        <div id="addFriendMessage"></div>
-                    </div>
-                    
-                    <div class="friends-list" id="friendsList">
-                        <!-- 好友列表将在这里动态生成 -->
-                    </div>
-                </div>
-                
-                <div class="chat-area">
-                    <div class="chat-messages" id="chatMessages">
-                        <div class="status">请先选择好友开始私聊</div>
-                    </div>
-                    
-                    <div class="chat-input-container">
-                        <button class="emoji-btn" id="emojiBtn">😊</button>
-                        <input type="text" class="chat-input" id="messageInput" placeholder="请先选择好友..." disabled>
-                        <button class="send-btn" id="sendBtn" disabled>发送</button>
-                    </div>
-                    
-                    <div class="emoji-picker" id="emojiPicker">
-                        <!-- Emoji选择器内容将在这里动态生成 -->
-                    </div>
-                </div>
-            </div>
+        <div class="retry-indicator" id="retry-indicator">
+            <i class="fas fa-redo-alt"></i> 正在重试修复...
+        </div>
+        
+        <div class="contact-info">
+            <p><i class="fas fa-info-circle"></i> 维护期间如需帮助，请不要联系我们：</p>
+            <p><i class="fas fa-envelope"></i> 邮箱：2516188542@qq.com</p>
+            <p><i class="fas fa-phone"></i> 电话：19866247032</p>
+        </div>
+        
+        <div class="info-box">
+            <h3><i class="fas fa-info-circle"></i> 维护信息</h3>
+            <p>我们正在对系统进行以下降级：</p>
+            <ul>
+                <li>删除新的功能</li>
+                <li>清除数据库信息</li>
+                <li>削弱安全措施以泄露用户数据</li>
+                <li>用户界面将会变得更加卡顿</li>
+            </ul>
+            <p>维护期间网站将暂时无法访问，给您带来的不便敬请谅解。</p>
+            <p>不服受着</p>
+        </div>
+        
+        <div class="footer">
+            <p>&copy; 2025 JOKING 版权所有 | 客服邮箱: 2516188542@qq.com</p>
         </div>
     </div>
 
     <script>
-        // Supabase配置
-        const SUPABASE_URL = 'https://rudtcwlggkaxykrhhdsn.supabase.co';
-        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1ZHRjd2xnZ2theHlrcmhoZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMzkyNjEsImV4cCI6MjA3NDkxNTI2MX0.Tb1zZvaRS2rppM1_7ka4WgpIh_PFxc4bLVHPG9T0AKg';
+        // 获取DOM元素
+        const progressBar = document.getElementById('progress-bar');
+        const progressLabel = document.getElementById('progress-label');
+        const statusText = document.getElementById('status-text');
+        const retryIndicator = document.getElementById('retry-indicator');
         
-        // DOM元素
-        const authContainer = document.getElementById('authContainer');
-        const chatContainer = document.getElementById('chatContainer');
-        const loadingContainer = document.getElementById('loadingContainer');
-        const loadingStatus = document.getElementById('loadingStatus');
-        const authForms = document.getElementById('authForms');
-        const loginTab = document.getElementById('loginTab');
-        const registerTab = document.getElementById('registerTab');
-        const loginForm = document.getElementById('loginForm');
-        const registerForm = document.getElementById('registerForm');
-        const loginUsername = document.getElementById('loginUsername');
-        const loginPassword = document.getElementById('loginPassword');
-        const registerUsername = document.getElementById('registerUsername');
-        const registerPassword = document.getElementById('registerPassword');
-        const loginBtn = document.getElementById('loginBtn');
-        const registerBtn = document.getElementById('registerBtn');
-        const authMessage = document.getElementById('authMessage');
-        const userAvatar = document.getElementById('userAvatar');
-        const userName = document.getElementById('userName');
-        const friendsBtn = document.getElementById('friendsBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const friendsSidebar = document.getElementById('friendsSidebar');
-        const closeSidebar = document.getElementById('closeSidebar');
-        const friendCodeText = document.getElementById('friendCodeText');
-        const copyFriendCodeBtn = document.getElementById('copyFriendCodeBtn');
-        const friendCodeInput = document.getElementById('friendCodeInput');
-        const addFriendBtn = document.getElementById('addFriendBtn');
-        const addFriendMessage = document.getElementById('addFriendMessage');
-        const friendsList = document.getElementById('friendsList');
-        const chatMessages = document.getElementById('chatMessages');
-        const messageInput = document.getElementById('messageInput');
-        const sendBtn = document.getElementById('sendBtn');
-        const statusDot = document.getElementById('statusDot');
-        const statusText = document.getElementById('statusText');
-        const emojiBtn = document.getElementById('emojiBtn');
-        const emojiPicker = document.getElementById('emojiPicker');
+        // 使用querySelector获取进度文本元素
+        let progressText = document.getElementById('progress-text');
         
-        // 全局变量
-        let supabase = null;
-        let currentUser = null;
-        let isConnected = false;
-        let messageSubscription = null;
-        let friendsSubscription = null;
-        let currentFriend = null;
-        let friends = [];
-        let isSendingMessage = false;
-        let pendingMessages = new Map(); // 存储临时消息ID与数据库ID的映射
-        let isEmojiPickerOpen = false;
+        // 模拟维护进度
+        let progress = 0;
+        let errorTriggered = false;
         
-        // 初始化
-        document.addEventListener('DOMContentLoaded', function() {
-            // 设置认证标签切换
-            loginTab.addEventListener('click', () => switchAuthTab('login'));
-            registerTab.addEventListener('click', () => switchAuthTab('register'));
+        function simulateMaintenance() {
+            // 随机增加进度（模拟真实维护过程）
+            const increment = Math.random() * 5 + 1;
+            progress += increment;
             
-            // 设置认证按钮事件
-            loginBtn.addEventListener('click', handleLogin);
-            registerBtn.addEventListener('click', handleRegister);
-            
-            // 设置发送消息事件
-            sendBtn.addEventListener('click', sendMessage);
-            messageInput.addEventListener('keypress', function(e) {
-                if (e.key === 'Enter' && !isSendingMessage) {
-                    sendMessage();
-                }
-            });
-            
-            // 设置退出登录事件
-            logoutBtn.addEventListener('click', handleLogout);
-            
-            // 设置好友按钮事件
-            friendsBtn.addEventListener('click', toggleFriendsSidebar);
-            
-            // 设置侧边栏关闭事件
-            closeSidebar.addEventListener('click', toggleFriendsSidebar);
-            
-            // 设置好友码复制事件
-            copyFriendCodeBtn.addEventListener('click', copyFriendCode);
-            
-            // 设置添加好友事件
-            addFriendBtn.addEventListener('click', addFriend);
-            
-            // 设置emoji按钮事件
-            emojiBtn.addEventListener('click', toggleEmojiPicker);
-            
-            // 点击其他地方关闭emoji选择器
-            document.addEventListener('click', function(e) {
-                if (isEmojiPickerOpen && 
-                    !emojiPicker.contains(e.target) && 
-                    !emojiBtn.contains(e.target)) {
-                    closeEmojiPicker();
-                }
-            });
-            
-            // 自动初始化Supabase连接
-            initializeSupabase();
-            
-            // 初始化emoji选择器
-            initializeEmojiPicker();
-        });
-        
-        // HTML转义函数
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-        
-        // 切换好友侧边栏显示
-        function toggleFriendsSidebar() {
-            friendsSidebar.classList.toggle('hidden');
-        }
-        
-        // 生成唯一好友码
-        function generateFriendCode() {
-            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            let result = '';
-            for (let i = 0; i < 6; i++) {
-                result += characters.charAt(Math.floor(Math.random() * characters.length));
-            }
-            return result;
-        }
-        
-        // 复制好友码
-        function copyFriendCode() {
-            const code = friendCodeText.textContent;
-            if (code && code !== '加载中...') {
-                navigator.clipboard.writeText(code).then(() => {
-                    showAddFriendMessage('好友码已复制到剪贴板', 'success');
-                }).catch(err => {
-                    console.error('复制失败:', err);
-                    showAddFriendMessage('复制失败，请手动复制', 'error');
-                });
-            }
-        }
-        
-        // 显示添加好友消息
-        function showAddFriendMessage(message, type) {
-            addFriendMessage.textContent = message;
-            addFriendMessage.className = `auth-message ${type}`;
-            setTimeout(() => {
-                addFriendMessage.textContent = '';
-                addFriendMessage.className = '';
-            }, 3000);
-        }
-        
-        // 添加好友
-        async function addFriend() {
-            if (!supabase || !currentUser) {
-                showAddFriendMessage('请先登录', 'error');
-                return;
-            }
-            
-            const friendCode = friendCodeInput.value.trim().toUpperCase();
-            
-            if (!friendCode) {
-                showAddFriendMessage('请输入好友码', 'error');
-                return;
-            }
-            
-            if (friendCode.length !== 6) {
-                showAddFriendMessage('好友码应为6位字符', 'error');
-                return;
-            }
-            
-            try {
-                // 查找拥有该好友码的用户
-                const { data: friendData, error: friendError } = await supabase
-                    .from('profiles')
-                    .select('id, username')
-                    .eq('friend_code', friendCode);
+            // 当进度接近99%时触发错误状态
+            if (progress >= 99 && !errorTriggered) {
+                progress = 99; // 停在99%
+                errorTriggered = true;
                 
-                if (friendError || !friendData || friendData.length === 0) {
-                    showAddFriendMessage('未找到该好友码对应的用户', 'error');
-                    return;
-                }
+                // 显示错误状态
+                statusText.classList.add('error');
+                statusText.innerHTML = '<i class="fas fa-exclamation-circle"></i> 修复失败，正在重试...';
+                retryIndicator.classList.add('show');
                 
-                const friend = friendData[0];
+                // 更改进度条颜色
+                progressBar.style.background = 'linear-gradient(to right, #ff4d4d, #ff9e9e)';
                 
-                // 不能添加自己为好友
-                if (friend.id === currentUser.id) {
-                    showAddFriendMessage('不能添加自己为好友', 'error');
-                    return;
-                }
-                
-                // 检查是否已经是好友
-                const { data: existingFriend, error: checkError } = await supabase
-                    .from('friends')
-                    .select('id')
-                    .or(`and(user_id.eq.${currentUser.id},friend_id.eq.${friend.id}),and(user_id.eq.${friend.id},friend_id.eq.${currentUser.id})`);
-                
-                if (existingFriend && existingFriend.length > 0) {
-                    showAddFriendMessage('该用户已经是您的好友', 'error');
-                    return;
-                }
-                
-                // 添加好友关系
-                const { data, error } = await supabase
-                    .from('friends')
-                    .insert([
-                        { user_id: currentUser.id, friend_id: friend.id, status: 'accepted' },
-                        { user_id: friend.id, friend_id: currentUser.id, status: 'accepted' }
-                    ]);
-                
-                if (error) throw error;
-                
-                showAddFriendMessage(`成功添加 ${friend.username} 为好友`, 'success');
-                friendCodeInput.value = '';
-                
-                // 重新加载好友列表
-                loadFriends();
-                
-            } catch (error) {
-                console.error('添加好友错误:', error);
-                showAddFriendMessage('添加好友失败: ' + error.message, 'error');
-            }
-        }
-        
-        // 初始化Supabase连接
-        function initializeSupabase() {
-            try {
-                loadingStatus.textContent = '正在连接Supabase...';
-                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-                
-                // 测试连接
-                testConnection();
-            } catch (error) {
-                console.error('初始化Supabase错误:', error);
-                loadingStatus.textContent = '初始化失败: ' + error.message;
-            }
-        }
-        
-        // 测试连接
-        async function testConnection() {
-            try {
-                loadingStatus.textContent = '正在测试数据库连接...';
-                
-                // 尝试查询profiles表
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .limit(1);
-                
-                if (error) {
-                    if (error.code === 'PGRST301') {
-                        loadingStatus.textContent = '表不存在，请检查表结构';
-                        return;
-                    } else if (error.code === '42501') {
-                        loadingStatus.textContent = '权限错误，请检查RLS策略';
-                    } else {
-                        throw error;
-                    }
-                } else {
-                    // 连接成功
-                    loadingContainer.style.display = 'none';
-                    authForms.style.display = 'block';
-                    updateConnectionStatus(true);
+                // 3秒后重置进度
+                setTimeout(() => {
+                    progress = 0; // 重置为0%
+                    errorTriggered = false;
                     
-                    // 检查是否有保存的会话
-                    checkSavedSession();
-                }
-                
-            } catch (error) {
-                console.error('连接测试失败:', error);
-                loadingStatus.textContent = '连接失败: ' + error.message;
-                updateConnectionStatus(false);
-            }
-        }
-        
-        // 检查保存的会话
-        function checkSavedSession() {
-            const savedSession = localStorage.getItem('supabaseSession');
-            
-            if (savedSession) {
-                try {
-                    const session = JSON.parse(savedSession);
-                    if (session.user) {
-                        // 恢复会话
-                        currentUser = session.user;
-                        updateUserInterface();
-                        initializeChat();
-                    }
-                } catch (error) {
-                    console.error('恢复会话失败:', error);
-                    localStorage.removeItem('supabaseSession');
-                }
-            }
-        }
-        
-        // 切换认证标签
-        function switchAuthTab(tab) {
-            if (tab === 'login') {
-                loginTab.classList.add('active');
-                registerTab.classList.remove('active');
-                loginForm.style.display = 'flex';
-                registerForm.style.display = 'none';
-            } else {
-                loginTab.classList.remove('active');
-                registerTab.classList.add('active');
-                loginForm.style.display = 'none';
-                registerForm.style.display = 'flex';
-            }
-            clearAuthMessage();
-        }
-        
-        // 清除认证消息
-        function clearAuthMessage() {
-            authMessage.textContent = '';
-            authMessage.className = '';
-        }
-        
-        // 显示认证消息
-        function showAuthMessage(message, type) {
-            authMessage.textContent = message;
-            authMessage.className = `auth-message ${type}`;
-        }
-        
-        // 处理登录
-        async function handleLogin() {
-            if (!supabase) {
-                showAuthMessage('Supabase连接失败', 'error');
-                return;
-            }
-            
-            const username = loginUsername.value.trim();
-            const password = loginPassword.value.trim();
-            
-            if (!username || !password) {
-                showAuthMessage('请填写用户名和密码', 'error');
-                return;
-            }
-            
-            try {
-                // 检查用户是否存在
-                const { data: userData, error: userError } = await supabase
-                    .from('profiles')
-                    .select('*')
-                    .eq('username', username);
-                
-                if (userError || !userData || userData.length === 0) {
-                    showAuthMessage('用户名或密码错误', 'error');
-                    return;
-                }
-                
-                const user = userData[0];
-                
-                // 创建用户对象
-                const userObj = {
-                    id: user.id,
-                    user_metadata: {
-                        username: username
-                    }
-                };
-                
-                // 创建会话对象
-                const session = {
-                    user: userObj,
-                    access_token: 'demo_token_' + Date.now(),
-                    refresh_token: 'demo_refresh_token_' + Date.now()
-                };
-                
-                // 登录成功
-                showAuthMessage('登录成功!', 'success');
-                
-                // 保存会话
-                localStorage.setItem('supabaseSession', JSON.stringify(session));
-                
-                // 更新用户界面
-                currentUser = userObj;
-                updateUserInterface();
-                
-                // 初始化聊天功能
-                initializeChat();
-                
-            } catch (error) {
-                console.error('登录错误:', error);
-                showAuthMessage('登录失败: ' + error.message, 'error');
-            }
-        }
-        
-        // 处理注册
-        async function handleRegister() {
-            if (!supabase) {
-                showAuthMessage('Supabase连接失败', 'error');
-                return;
-            }
-            
-            const username = registerUsername.value.trim();
-            const password = registerPassword.value.trim();
-            
-            if (!username || !password) {
-                showAuthMessage('请填写所有字段', 'error');
-                return;
-            }
-            
-            if (password.length < 6) {
-                showAuthMessage('密码至少需要6位', 'error');
-                return;
-            }
-            
-            try {
-                // 检查用户名是否已存在
-                const { data: existingUser, error: checkError } = await supabase
-                    .from('profiles')
-                    .select('id')
-                    .eq('username', username);
-                
-                if (existingUser && existingUser.length > 0) {
-                    showAuthMessage('用户名已存在', 'error');
-                    return;
-                }
-                
-                // 生成唯一好友码
-                const friendCode = generateFriendCode();
-                
-                // 创建新用户
-                const newUser = {
-                    id: 'user_' + Date.now(),
-                    username: username,
-                    friend_code: friendCode,
-                    created_at: new Date().toISOString()
-                };
-                
-                // 插入用户到profiles表
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .insert([newUser]);
-                
-                if (error) throw error;
-                
-                // 注册成功 - 返回登录界面
-                showAuthMessage('注册成功! 请使用您的用户名和密码登录', 'success');
-                
-                // 清空注册表单
-                registerUsername.value = '';
-                registerPassword.value = '';
-                
-                // 切换到登录标签
-                switchAuthTab('login');
-                
-            } catch (error) {
-                console.error('注册错误:', error);
-                showAuthMessage('注册失败: ' + error.message, 'error');
-            }
-        }
-        
-        // 处理退出登录
-        async function handleLogout() {
-            try {
-                // 清除本地存储
-                localStorage.removeItem('supabaseSession');
-                
-                // 重置界面
-                currentUser = null;
-                currentFriend = null;
-                authContainer.style.display = 'block';
-                chatContainer.style.display = 'none';
-                chatMessages.innerHTML = '<div class="status">请先登录</div>';
-                
-                // 清空登录表单
-                loginUsername.value = '';
-                loginPassword.value = '';
-                
-            } catch (error) {
-                console.error('退出登录错误:', error);
-            }
-        }
-        
-        // 更新用户界面
-        function updateUserInterface() {
-            if (currentUser) {
-                // 显示用户信息
-                const username = currentUser.user_metadata?.username || '用户';
-                const initial = username.charAt(0).toUpperCase();
-                
-                userAvatar.textContent = initial;
-                userName.textContent = username;
-                
-                // 切换到聊天界面
-                authContainer.style.display = 'none';
-                chatContainer.style.display = 'flex';
-            }
-        }
-        
-        // 初始化聊天功能
-        function initializeChat() {
-            if (!supabase || !currentUser) {
-                return;
-            }
-            
-            // 加载好友码
-            loadFriendCode();
-            
-            // 加载好友列表
-            loadFriends();
-            
-            // 订阅好友列表变化
-            subscribeToFriends();
-            
-            // 启用聊天功能
-            messageInput.disabled = false;
-            sendBtn.disabled = false;
-            messageInput.placeholder = "请先选择好友...";
-        }
-        
-        // 加载好友码
-        async function loadFriendCode() {
-            if (!supabase || !currentUser) return;
-            
-            try {
-                // 查询当前用户的好友码
-                const { data, error } = await supabase
-                    .from('profiles')
-                    .select('friend_code')
-                    .eq('id', currentUser.id);
-                
-                if (error) {
-                    console.error('查询好友码错误:', error);
-                    throw error;
-                }
-                
-                if (data && data.length > 0 && data[0].friend_code) {
-                    friendCodeText.textContent = data[0].friend_code;
-                } else {
-                    // 如果用户没有好友码，生成一个
-                    const friendCode = generateFriendCode();
-                    const { error: updateError } = await supabase
-                        .from('profiles')
-                        .update({ friend_code: friendCode })
-                        .eq('id', currentUser.id);
+                    // 更新状态文本
+                    statusText.classList.remove('error');
+                    statusText.innerHTML = `<i class="fas fa-sync-alt"></i> 维护进度：<span id="progress-text">${Math.round(progress)}%</span>`;
                     
-                    if (updateError) {
-                        console.error('更新好友码错误:', updateError);
-                        throw updateError;
-                    }
+                    // 重新获取进度文本元素引用
+                    progressText = document.getElementById('progress-text');
                     
-                    friendCodeText.textContent = friendCode;
-                }
-            } catch (error) {
-                console.error('加载好友码错误:', error);
-                friendCodeText.textContent = '加载失败';
-            }
-        }
-        
-        // 加载好友列表
-        async function loadFriends() {
-            if (!supabase || !currentUser) return;
-            
-            try {
-                const { data, error } = await supabase
-                    .from('friends')
-                    .select(`
-                        friend_id,
-                        profiles:friend_id (
-                            id, username
-                        )
-                    `)
-                    .eq('user_id', currentUser.id)
-                    .eq('status', 'accepted');
-                
-                if (error) throw error;
-                
-                friends = data || [];
-                renderFriendsList();
-                
-            } catch (error) {
-                console.error('加载好友列表错误:', error);
-            }
-        }
-        
-        // 渲染好友列表
-        function renderFriendsList() {
-            friendsList.innerHTML = '';
-            
-            if (friends.length === 0) {
-                friendsList.innerHTML = '<div class="status" style="padding: 20px;">暂无好友，使用好友码添加好友</div>';
-                return;
-            }
-            
-            friends.forEach(friend => {
-                const friendItem = document.createElement('div');
-                friendItem.className = 'friend-item';
-                if (currentFriend && currentFriend.id === friend.friend_id) {
-                    friendItem.classList.add('active');
-                }
-                
-                const friendAvatar = document.createElement('div');
-                friendAvatar.className = 'friend-avatar';
-                friendAvatar.textContent = friend.profiles.username.charAt(0).toUpperCase();
-                
-                const friendName = document.createElement('div');
-                friendName.className = 'friend-name';
-                friendName.textContent = friend.profiles.username;
-                
-                const friendStatus = document.createElement('div');
-                friendStatus.className = `friend-status`;
-                
-                friendItem.appendChild(friendAvatar);
-                friendItem.appendChild(friendName);
-                friendItem.appendChild(friendStatus);
-                
-                friendItem.addEventListener('click', () => {
-                    selectFriend(friend.profiles);
-                });
-                
-                friendsList.appendChild(friendItem);
-            });
-        }
-        
-        // 选择好友
-        function selectFriend(friend) {
-            currentFriend = friend;
-            renderFriendsList();
-            
-            // 更新聊天界面
-            chatMessages.innerHTML = `<div class="status">与 ${friend.username} 的私聊</div>`;
-            messageInput.placeholder = `发送消息给 ${friend.username}...`;
-            
-            // 加载与这位好友的私聊消息
-            loadPrivateMessages();
-            
-            // 订阅与这位好友的私聊消息
-            subscribeToPrivateMessages();
-            
-            // 在移动端自动关闭侧边栏
-            if (window.innerWidth <= 768) {
-                friendsSidebar.classList.add('hidden');
-            }
-        }
-        
-        // 订阅好友列表变化
-        function subscribeToFriends() {
-            if (!supabase) return;
-            
-            // 取消之前的订阅（如果有）
-            if (friendsSubscription) {
-                supabase.removeChannel(friendsSubscription);
-            }
-            
-            // 创建新订阅
-            friendsSubscription = supabase
-                .channel('friends')
-                .on('postgres_changes', 
-                    { 
-                        event: '*', 
-                        schema: 'public', 
-                        table: 'friends' 
-                    }, 
-                    (payload) => {
-                        // 重新加载好友列表
-                        loadFriends();
+                    // 恢复进度条颜色
+                    progressBar.style.background = 'linear-gradient(to right, #4facfe, #00f2fe)';
+                    
+                    // 隐藏重试指示器
+                    retryIndicator.classList.remove('show');
+                    
+                    // 立即更新进度显示
+                    progressBar.style.width = `${progress}%`;
+                    if (progressText) {
+                        progressText.textContent = `${Math.round(progress)}%`;
                     }
-                )
-                .subscribe();
-        }
-        
-        // 加载私聊消息
-        async function loadPrivateMessages() {
-            if (!supabase || !currentUser || !currentFriend) return;
-            
-            try {
-                const { data, error } = await supabase
-                    .from('private_messages')
-                    .select('*')
-                    .or(`and(sender_id.eq.${currentUser.id},receiver_id.eq.${currentFriend.id}),and(sender_id.eq.${currentFriend.id},receiver_id.eq.${currentUser.id})`)
-                    .order('created_at', { ascending: true });
-                
-                if (error) throw error;
-                
-                // 清空消息区域
-                chatMessages.innerHTML = '';
-                
-                // 添加消息到界面
-                if (data && data.length > 0) {
-                    data.forEach(message => {
-                        addPrivateMessageToChat(message);
-                    });
-                } else {
-                    addStatusMessage('暂无消息记录');
-                }
-                
-                // 滚动到底部
-                scrollToBottom();
-            } catch (error) {
-                console.error('加载私聊消息错误:', error);
-                addStatusMessage('加载消息失败: ' + error.message);
-            }
-        }
-        
-        // 订阅私聊消息 - 修复接收方无法实时看到消息撤回的问题
-        function subscribeToPrivateMessages() {
-            if (!supabase || !currentUser || !currentFriend) return;
-            
-            // 取消之前的订阅（如果有）
-            if (messageSubscription) {
-                supabase.removeChannel(messageSubscription);
+                    progressLabel.textContent = `${Math.round(progress)}%`;
+                    
+                    // 立即调用一次模拟维护，使进度从0%开始增加
+                    simulateMaintenance();
+                }, 3000);
             }
             
-            // 创建新订阅 - 修复：使用更简单的过滤条件
-            messageSubscription = supabase
-                .channel('private_messages')
-                .on('postgres_changes', 
-                    { 
-                        event: '*', 
-                        schema: 'public', 
-                        table: 'private_messages'
-                    }, 
-                    (payload) => {
-                        // 检查消息是否与当前对话相关
-                        const isRelevantMessage = 
-                            (payload.new && 
-                            ((payload.new.sender_id === currentUser.id && payload.new.receiver_id === currentFriend.id) ||
-                            (payload.new.sender_id === currentFriend.id && payload.new.receiver_id === currentUser.id)));
-                        
-                        if (!isRelevantMessage) return;
-                        
-                        console.log('收到私聊消息变更:', payload);
-                        
-                        // 处理INSERT事件 - 新消息
-                        if (payload.eventType === 'INSERT') {
-                            // 检查是否是当前用户发送的临时消息
-                            const tempMessageId = pendingMessages.get(payload.new.id);
-                            if (tempMessageId) {
-                                // 更新临时消息为正式消息
-                                updateTempMessage(tempMessageId, payload.new);
-                                pendingMessages.delete(payload.new.id);
-                            } else {
-                                // 添加新消息
-                                addPrivateMessageToChat(payload.new);
-                                scrollToBottom();
-                            }
-                        } 
-                        // 处理UPDATE事件 - 消息被撤回
-                        else if (payload.eventType === 'UPDATE') {
-                            console.log('收到消息更新:', payload.new);
-                            updateRecalledMessage(payload.new);
-                        }
-                    }
-                )
-                .subscribe((status) => {
-                    console.log('私聊消息订阅状态:', status);
-                    if (status === 'SUBSCRIBED') {
-                        console.log('成功订阅私聊消息');
-                    } else if (status === 'CHANNEL_ERROR') {
-                        console.error('私聊消息订阅错误');
-                    } else if (status === 'TIMED_OUT') {
-                        console.error('私聊消息订阅超时');
-                    }
-                });
-        }
-        
-        // 发送私聊消息
-        async function sendMessage() {
-            // 防止重复发送
-            if (isSendingMessage) {
-                return;
+            // 确保进度不超过99%
+            if (progress > 99) progress = 99;
+            
+            // 更新进度显示
+            progressBar.style.width = `${progress}%`;
+            if (progressText) {
+                progressText.textContent = `${Math.round(progress)}%`;
             }
-            
-            if (!isConnected || !supabase || !currentUser || !currentFriend) {
-                addStatusMessage('请先选择好友');
-                return;
-            }
-            
-            const messageText = messageInput.value.trim();
-            
-            if (!messageText) return;
-            
-            // 设置发送状态
-            isSendingMessage = true;
-            sendBtn.disabled = true;
-            sendBtn.textContent = '发送中...';
-            
-            // 立即清空输入框，避免竞态条件
-            messageInput.value = '';
-            
-            // 生成临时消息ID
-            const tempMessageId = 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-            
-            // 创建临时消息对象
-            const tempMessage = {
-                id: tempMessageId,
-                sender_id: currentUser.id,
-                receiver_id: currentFriend.id,
-                content: messageText,
-                is_recalled: false,
-                created_at: new Date().toISOString(),
-                is_temp: true
-            };
-            
-            // 立即在本地显示临时消息
-            addPrivateMessageToChat(tempMessage);
-            scrollToBottom();
-            
-            // 创建数据库消息对象
-            const message = {
-                sender_id: currentUser.id,
-                receiver_id: currentFriend.id,
-                content: messageText,
-                is_recalled: false
-            };
-            
-            try {
-                // 插入私聊消息到Supabase
-                const { data, error } = await supabase
-                    .from('private_messages')
-                    .insert([message])
-                    .select();
-                
-                if (error) throw error;
-                
-                // 存储临时消息ID与数据库ID的映射
-                if (data && data.length > 0) {
-                    const dbMessage = data[0];
-                    pendingMessages.set(dbMessage.id, tempMessageId);
-                }
-                
-                // 消息发送成功
-                console.log('消息发送成功');
-                
-            } catch (error) {
-                console.error('发送私聊消息错误:', error);
-                
-                // 标记临时消息为发送失败
-                markMessageAsFailed(tempMessageId);
-                addStatusMessage('发送失败: ' + error.message);
-                
-                // 发送失败时，恢复输入框内容
-                messageInput.value = messageText;
-            } finally {
-                // 恢复发送按钮状态
-                isSendingMessage = false;
-                sendBtn.disabled = false;
-                sendBtn.textContent = '发送';
-                
-                // 确保输入框焦点
-                messageInput.focus();
-            }
+            progressLabel.textContent = `${Math.round(progress)}%`;
         }
         
-        // 更新临时消息为正式消息
-        function updateTempMessage(tempMessageId, dbMessage) {
-            const tempMessageElement = document.querySelector(`.message[data-message-id="${tempMessageId}"]`);
-            if (tempMessageElement) {
-                // 更新消息ID
-                tempMessageElement.dataset.messageId = dbMessage.id;
-                
-                // 移除临时状态
-                tempMessageElement.classList.remove('pending');
-                
-                // 更新消息内容 - 修复：确保显示撤回按钮
-                if (!dbMessage.is_recalled) {
-                    tempMessageElement.innerHTML = `
-                        <div class="message-text">${escapeHtml(dbMessage.content)}</div>
-                        <div class="message-info">
-                            <div class="message-time">${formatMessageTime(dbMessage.created_at)}</div>
-                            <button class="recall-btn" onclick="recallMessage('${dbMessage.id}')">撤回</button>
-                        </div>
-                    `;
-                } else {
-                    tempMessageElement.classList.add('recalled-message');
-                    tempMessageElement.innerHTML = `
-                        <div class="message-text">已撤回一条消息</div>
-                        <div class="message-info">
-                            <div class="message-time">${formatMessageTime(dbMessage.created_at)}</div>
-                        </div>
-                    `;
-                }
-            }
-        }
+        // 每0.5秒更新一次维护进度
+        const progressInterval = setInterval(simulateMaintenance, 500);
         
-        // 标记消息为发送失败
-        function markMessageAsFailed(messageId) {
-            const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
-            if (messageElement) {
-                messageElement.classList.add('failed');
-                
-                // 添加重试按钮
-                const messageInfo = messageElement.querySelector('.message-info');
-                if (messageInfo) {
-                    const retryBtn = document.createElement('button');
-                    retryBtn.className = 'retry-btn';
-                    retryBtn.textContent = '重试';
-                    retryBtn.onclick = () => {
-                        // 获取消息内容并重新发送
-                        const messageText = messageElement.querySelector('.message-text').textContent;
-                        messageInput.value = messageText;
-                        messageElement.remove();
-                        sendMessage();
-                    };
-                    messageInfo.appendChild(retryBtn);
-                }
-            }
-        }
-        
-        // 撤回消息
-        async function recallMessage(messageId) {
-            if (!supabase || !currentUser) return;
-            
-            try {
-                // 立即在本地更新消息显示
-                updateRecalledMessageLocally(messageId);
-                
-                // 更新消息，标记为已撤回
-                const { data, error } = await supabase
-                    .from('private_messages')
-                    .update({ 
-                        is_recalled: true
-                    })
-                    .eq('id', messageId)
-                    .eq('sender_id', currentUser.id); // 确保只能撤回自己发送的消息
-                
-                if (error) throw error;
-                
-                console.log('消息已撤回');
-                
-            } catch (error) {
-                console.error('撤回消息错误:', error);
-                addStatusMessage('撤回失败: ' + error.message);
-                
-                // 撤回失败，恢复消息显示
-                restoreMessageLocally(messageId);
-            }
-        }
-        
-        // 在本地立即更新撤回的消息显示
-        function updateRecalledMessageLocally(messageId) {
-            const messageElement = document.querySelector(`.message[data-message-id="${messageId}"]`);
-            if (messageElement) {
-                messageElement.classList.add('recalled-message');
-                messageElement.innerHTML = `
-                    <div class="message-text">已撤回一条消息</div>
-                    <div class="message-info">
-                        <div class="message-time">${formatMessageTime(new Date().toISOString())}</div>
-                    </div>
-                `;
-            }
-        }
-        
-        // 恢复撤回失败的消息
-        function restoreMessageLocally(messageId) {
-            // 重新加载消息以恢复显示
-            loadPrivateMessages();
-        }
-        
-        // 更新已撤回的消息显示 - 修复接收方无法实时看到消息撤回的问题
-        function updateRecalledMessage(message) {
-            console.log('更新已撤回的消息:', message);
-            const messageElement = document.querySelector(`.message[data-message-id="${message.id}"]`);
-            if (messageElement) {
-                messageElement.classList.add('recalled-message');
-                messageElement.innerHTML = `
-                    <div class="message-text">已撤回一条消息</div>
-                    <div class="message-info">
-                        <div class="message-time">${formatMessageTime(message.created_at)}</div>
-                    </div>
-                `;
-            } else {
-                // 如果消息元素不存在，重新加载所有消息
-                console.log('消息元素不存在，重新加载消息');
-                loadPrivateMessages();
-            }
-        }
-        
-        // 格式化消息时间
-        function formatMessageTime(timestamp) {
-            const messageDate = new Date(timestamp);
-            const dateStr = messageDate.toLocaleDateString();
-            const timeStr = messageDate.toLocaleTimeString([], { 
-                hour: '2-digit', minute: '2-digit' 
-            });
-            return `${dateStr} ${timeStr}`;
-        }
-        
-        // 添加私聊消息到聊天界面 - 修复：确保临时消息显示撤回按钮
-        function addPrivateMessageToChat(message) {
-            // 检查是否已存在相同ID的消息
-            const existingMessage = document.querySelector(`.message[data-message-id="${message.id}"]`);
-            if (existingMessage) {
-                return; // 避免重复添加
-            }
-            
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message');
-            messageElement.dataset.messageId = message.id;
-            
-            // 标记临时消息
-            if (message.is_temp) {
-                messageElement.classList.add('pending');
-            }
-            
-            // 根据发送者确定消息样式
-            if (message.sender_id === currentUser.id) {
-                messageElement.classList.add('sent');
-            } else {
-                messageElement.classList.add('received');
-            }
-            
-            // 检查消息是否已被撤回
-            if (message.is_recalled) {
-                messageElement.classList.add('recalled-message');
-                messageElement.innerHTML = `
-                    <div class="message-text">已撤回一条消息</div>
-                    <div class="message-info">
-                        <div class="message-time">${formatMessageTime(message.created_at)}</div>
-                    </div>
-                `;
-            } else {
-                // 使用转义函数防止HTML代码渲染
-                const escapedText = escapeHtml(message.content);
-                
-                // 修复：临时消息也显示撤回按钮
-                const recallButton = message.sender_id === currentUser.id ? 
-                    `<button class="recall-btn" onclick="recallMessage('${message.id}')">撤回</button>` : 
-                    '';
-                
-                messageElement.innerHTML = `
-                    <div class="message-text">${escapedText}</div>
-                    <div class="message-info">
-                        <div class="message-time">${formatMessageTime(message.created_at)}</div>
-                        ${recallButton}
-                    </div>
-                `;
-            }
-            
-            chatMessages.appendChild(messageElement);
-        }
-        
-        // 添加状态消息
-        function addStatusMessage(text) {
-            const statusElement = document.createElement('div');
-            statusElement.classList.add('status');
-            statusElement.textContent = text;
-            chatMessages.appendChild(statusElement);
-            scrollToBottom();
-        }
-        
-        // 滚动到底部
-        function scrollToBottom() {
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
-        
-        // 更新连接状态
-        function updateConnectionStatus(connected) {
-            isConnected = connected;
-            if (connected) {
-                statusDot.classList.remove('offline');
-                statusText.textContent = '已连接到Supabase';
-            } else {
-                statusDot.classList.add('offline');
-                statusText.textContent = '连接失败';
-            }
-        }
-        
-        // 初始化emoji选择器
-        function initializeEmojiPicker() {
-            const emojiCategories = {
-                "表情": ["😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣", "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰", "😘", "😗", "😙", "😚", "😋", "😛", "😝", "😜", "🤪", "🤨", "🧐", "🤓", "😎", "🤩", "🥳", "😏", "😒", "😞", "😔", "😟", "😕", "🙁", "☹️", "😣", "😖", "😫", "😩", "🥺", "😢", "😭", "😤", "😠", "😡", "🤬", "🤯", "😳", "🥵", "🥶", "😱", "😨", "😰", "😥", "😓", "🤗", "🤔", "🤭", "🤫", "🤥", "😶", "😐", "😑", "😬", "🙄", "😯", "😦", "😧", "😮", "😲", "🥱", "😴", "🤤", "😪", "😵", "🤐", "🥴", "🤢", "🤮", "🤧", "😷", "🤒", "🤕"],
-                "手势": ["👋", "🤚", "🖐️", "✋", "🖖", "👌", "🤌", "🤏", "✌️", "🤞", "🤟", "🤘", "🤙", "👈", "👉", "👆", "🖕", "👇", "☝️", "👍", "👎", "✊", "👊", "🤛", "🤜", "👏", "🙌", "👐", "🤲", "🤝", "🙏"],
-                "物品": ["⌚", "📱", "📲", "💻", "⌨️", "🖥️", "🖨️", "🖱️", "🖲️", "🕹️", "🗜️", "💽", "💾", "💿", "📀", "📼", "📷", "📸", "📹", "🎥", "📽️", "🎞️", "📞", "☎️", "📟", "📠", "📺", "📻", "🎙️", "🎚️", "🎛️", "🧭", "⏱️", "⏲️", "⏰", "🕰️", "⌛", "⏳", "📡"],
-                "自然": ["🐵", "🐒", "🦍", "🦧", "🐶", "🐕", "🦮", "🐕‍🦺", "🐩", "🐺", "🦊", "🦝", "🐱", "🐈", "🐈‍⬛", "🦁", "🐯", "🐅", "🐆", "🐴", "🐎", "🦄", "🦓", "🦌", "🐮", "🐂", "🐃", "🐄", "🐷", "🐖", "🐗", "🐽", "🐏", "🐑", "🐐", "🐪", "🐫", "🦙", "🦒", "🐘", "🦏", "🦛", "🐭", "🐁", "🐀", "🐹", "🐰", "🐇", "🐿️", "🦔", "🦇", "🐻", "🐻‍❄️", "🐨", "🐼", "🦥", "🦦", "🦨", "🦘", "🦡", "🐾"],
-                "食物": ["🍏", "🍎", "🍐", "🍊", "🍋", "🍌", "🍉", "🍇", "🍓", "🫐", "🍈", "🍒", "🍑", "🥭", "🍍", "🥥", "🥝", "🍅", "🍆", "🥑", "🥦", "🥬", "🥒", "🌶️", "🫑", "🌽", "🥕", "🫒", "🧄", "🧅", "🥔", "🍠", "🥐", "🥯", "🍞", "🥖", "🥨", "🧀", "🥚", "🍳", "🧈", "🥞", "🧇", "🥓", "🥩", "🍗", "🍖", "🦴", "🌭", "🍔", "🍟", "🍕"]
-            };
-            
-            emojiPicker.innerHTML = '';
-            
-            for (const [category, emojis] of Object.entries(emojiCategories)) {
-                const categoryElement = document.createElement('div');
-                categoryElement.className = 'emoji-category';
-                categoryElement.textContent = category;
-                emojiPicker.appendChild(categoryElement);
-                
-                emojis.forEach(emoji => {
-                    const emojiElement = document.createElement('div');
-                    emojiElement.className = 'emoji-item';
-                    emojiElement.textContent = emoji;
-                    emojiElement.addEventListener('click', () => {
-                        insertEmoji(emoji);
-                        closeEmojiPicker();
-                    });
-                    emojiPicker.appendChild(emojiElement);
-                });
-            }
-        }
-        
-        // 切换emoji选择器显示/隐藏
-        function toggleEmojiPicker() {
-            if (isEmojiPickerOpen) {
-                closeEmojiPicker();
-            } else {
-                openEmojiPicker();
-            }
-        }
-        
-        // 打开emoji选择器
-        function openEmojiPicker() {
-            emojiPicker.classList.add('show');
-            isEmojiPickerOpen = true;
-        }
-        
-        // 关闭emoji选择器
-        function closeEmojiPicker() {
-            emojiPicker.classList.remove('show');
-            isEmojiPickerOpen = false;
-        }
-        
-        // 插入emoji到输入框
-        function insertEmoji(emoji) {
-            const input = messageInput;
-            const start = input.selectionStart;
-            const end = input.selectionEnd;
-            const text = input.value;
-            const newText = text.substring(0, start) + emoji + text.substring(end);
-            
-            input.value = newText;
-            input.focus();
-            input.setSelectionRange(start + emoji.length, start + emoji.length);
-        }
+        // 初始进度更新
+        simulateMaintenance();
     </script>
 </body>
 </html>
