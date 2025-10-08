@@ -1,0 +1,2915 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>聊天室后台管理系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif}
+        body{background:#f5f7fa;color:#333;line-height:1.6}
+        .admin-container{max-width:1400px;margin:0 auto;padding:20px}
+        .admin-header{background:white;border-radius:10px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.05);margin-bottom:20px;display:flex;justify-content:space-between;align-items:center}
+        .admin-header h1{color:#4a6ee0;font-size:1.8rem;display:flex;align-items:center;gap:10px}
+        .stats-container{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px;margin-bottom:20px}
+        .stat-card{background:white;border-radius:10px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.05);text-align:center;transition:transform 0.3s,box-shadow 0.3s}
+        .stat-card:hover{transform:translateY(-5px);box-shadow:0 5px 15px rgba(0,0,0,0.1)}
+        .stat-number{font-size:2.5rem;font-weight:bold;color:#4a6ee0;margin-bottom:5px}
+        .stat-label{color:#666;font-size:0.9rem}
+        .tabs{display:flex;background:white;border-radius:10px 10px 0 0;overflow:hidden;margin-top:30px;flex-wrap:wrap}
+        .tab{padding:15px 20px;cursor:pointer;border-bottom:2px solid transparent;transition:all 0.3s}
+        .tab.active{border-bottom:2px solid #4a6ee0;color:#4a6ee0;font-weight:600}
+        .tab-content{display:none;background:white;border-radius:0 0 10px 10px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,0.05)}
+        .tab-content.active{display:block}
+        table{width:100%;border-collapse:collapse}
+        th,td{padding:12px 15px;text-align:left;border-bottom:1px solid #eee}
+        th{background:#f8f9fa;font-weight:600;color:#555;position:relative;cursor:pointer;user-select:none}
+        th:hover{background:#f0f2f5}
+        .sortable::after{content:'↕';margin-left:5px;font-size:12px;opacity:0.5}
+        .sortable.asc::after{content:'↑';opacity:1}
+        .sortable.desc::after{content:'↓';opacity:1}
+        tr:hover{background:#f8f9fa}
+        .action-btn{padding:5px 10px;background:#4a6ee0;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.8rem;margin-right:5px;transition:background 0.3s}
+        .action-btn:hover{background:#3a5ed0}
+        .action-btn.edit{background:#3498db}
+        .action-btn.edit:hover{background:#2980b9}
+        .action-btn.delete{background:#e74c3c}
+        .action-btn.delete:hover{background:#c0392b}
+        .search-container{margin-bottom:20px;display:flex;gap:10px;flex-wrap:wrap}
+        .search-input{flex:1;min-width:200px;padding:10px 15px;border:1px solid #ddd;border-radius:6px;font-size:1rem}
+        .search-btn{padding:10px 20px;background:#4a6ee0;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;transition:background 0.3s}
+        .search-btn:hover{background:#3a5ed0}
+        .pagination{display:flex;justify-content:center;margin-top:20px;gap:5px}
+        .page-btn{padding:8px 12px;border:1px solid #ddd;background:white;border-radius:4px;cursor:pointer;transition:all 0.3s}
+        .page-btn:hover{background:#f0f0f0}
+        .page-btn.active{background:#4a6ee0;color:white;border-color:#4a6ee0}
+        .loading-container{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px}
+        .loading-spinner{width:40px;height:40px;border:4px solid #f3f3f3;border-top:4px solid #4a6ee0;border-radius:50%;animation:spin 1s linear infinite;margin-bottom:20px}
+        @keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
+        .connection-status{display:flex;align-items:center;gap:5px;font-size:0.9rem;color:#666}
+        .status-dot{width:10px;height:10px;border-radius:50%;background:#4CAF50}
+        .status-dot.offline{background:#f44336}
+        .no-data{text-align:center;padding:30px;color:#666}
+        .refresh-btn{padding:10px 20px;background:#4a6ee0;color:white;border:none;border-radius:6px;cursor:pointer;font-weight:500;display:flex;align-items:center;gap:5px;transition:background 0.3s}
+        .refresh-btn:hover{background:#3a5ed0}
+        .modal-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;visibility:hidden;transition:all 0.3s}
+        .modal-overlay.show{opacity:1;visibility:visible}
+        .modal{background:white;border-radius:12px;box-shadow:0 10px 30px rgba(0,0,0,0.3);width:90%;max-width:800px;max-height:90vh;transform:translateY(-20px);transition:transform 0.3s;display:flex;flex-direction:column}
+        .modal-overlay.show .modal{transform:translateY(0)}
+        .modal-header{padding:20px 25px 10px;font-weight:600;font-size:1.2rem;color:#333;border-bottom:1px solid #eee}
+        .modal-body{padding:20px 25px;color:#666;line-height:1.5;overflow-y:auto;flex:1}
+        .modal-footer{padding:15px 25px 20px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid #eee}
+        .modal-btn{padding:10px 20px;border:none;border-radius:6px;cursor:pointer;font-weight:500;transition:background 0.3s}
+        .modal-btn.cancel{background:#f0f0f0;color:#333}
+        .modal-btn.cancel:hover{background:#e0e0e0}
+        .modal-btn.confirm{background:#4a6ee0;color:white}
+        .modal-btn.confirm:hover{background:#3a5ed0}
+        .form-group{margin-bottom:15px}
+        .form-label{display:block;margin-bottom:5px;font-weight:500;color:#333}
+        .form-input{width:100%;padding:10px 15px;border:1px solid #ddd;border-radius:6px;font-size:1rem}
+        .user-avatar{width:30px;height:30px;border-radius:50%;background:#4a6ee0;display:inline-flex;align-items:center;justify-content:center;color:white;font-weight:bold;margin-right:8px}
+        .user-avatar-img{width:30px;height:30px;border-radius:50%;object-fit:cover;margin-right:8px;border:1px solid #ddd}
+        .user-info{display:flex;align-items:center}
+        .avatar-preview{display:flex;align-items:center;gap:15px;margin-top:10px;padding:10px;background:#f8f9fa;border-radius:8px}
+        .avatar-preview-img{width:50px;height:50px;border-radius:50%;background:#4a6ee0;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;background-size:cover;background-position:center;border:2px solid #ddd}
+        .avatar-preview-text{font-size:0.9rem;color:#666}
+        .fixed-message{max-width:400px;min-height:60px;max-height:200px;overflow-y:auto;word-wrap:break-word}
+        .message-content{padding:8px 12px;border-radius:12px;background:#f0f2f5;margin-bottom:5px}
+        .message.sent .message-content{background:#4a6ee0;color:white}
+        .message-image{max-width:100%;max-height:150px;border-radius:8px;margin:5px 0}
+        .batch-actions{display:flex;gap:10px;margin-bottom:15px;align-items:center;flex-wrap:wrap}
+        .batch-action-btn{padding:8px 16px;background:#4a6ee0;color:white;border:none;border-radius:4px;cursor:pointer;font-size:0.9rem;transition:background 0.3s}
+        .batch-action-btn:hover{background:#3a5ed0}
+        .batch-action-btn.delete{background:#e74c3c}
+        .batch-action-btn.delete:hover{background:#c0392b}
+        .batch-action-btn:disabled{background:#ccc;cursor:not-allowed}
+        .selected-count{color:#4a6ee0;font-weight:500;margin-left:10px}
+        .checkbox-cell{width:40px;text-align:center}
+        .checkbox-cell input[type="checkbox"]{width:16px;height:16px;cursor:pointer}
+        .network-graph-container{width:100%;height:700px;border:1px solid #eee;border-radius:8px;position:relative;overflow:hidden;background:#fafafa}
+        .graph-tooltip{position:absolute;padding:10px;background:rgba(0,0,0,0.8);color:white;border-radius:4px;pointer-events:none;font-size:0.9rem;z-index:100;max-width:300px}
+        .graph-node{cursor:pointer}
+        .graph-node:hover{stroke:#333;stroke-width:2px}
+        .graph-node.highlighted{stroke:#4a6ee0;stroke-width:3px}
+        .graph-link{stroke:#999;stroke-opacity:0.6}
+        .graph-link.highlighted{stroke:#4a6ee0;stroke-opacity:1;stroke-width:2px}
+        .graph-label{font-size:12px;pointer-events:none;text-shadow:0 1px 0 #fff,1px 0 0 #fff,0 -1px 0 #fff,-1px 0 0 #fff}
+        .graph-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:15px;margin-bottom:20px}
+        .graph-stat-card{background:white;border-radius:8px;padding:15px;box-shadow:0 2px 5px rgba(0,0,0,0.05);text-align:center}
+        .graph-stat-number{font-size:1.8rem;font-weight:bold;color:#4a6ee0;margin-bottom:5px}
+        .graph-stat-label{color:#666;font-size:0.85rem}
+        .graph-filters{display:flex;gap:15px;margin-bottom:20px;flex-wrap:wrap}
+        .filter-group{display:flex;flex-direction:column;gap:5px}
+        .filter-label{font-size:0.9rem;font-weight:500;color:#555}
+        .filter-select{padding:8px 12px;border:1px solid #ddd;border-radius:4px;background:white;cursor:pointer}
+        .graph-info-panel{background:white;border-radius:8px;padding:20px;margin-top:20px;box-shadow:0 2px 5px rgba(0,0,0,0.05)}
+        .info-panel-header{font-weight:600;margin-bottom:15px;color:#4a6ee0;display:flex;justify-content:space-between;align-items:center}
+        .info-panel-content{max-height:200px;overflow-y:auto}
+        .info-item{padding:8px 0;border-bottom:1px solid #f0f0f0;display:flex;justify-content:space-between}
+        .info-item:last-child{border-bottom:none}
+        
+        /* 官方登录相关样式 */
+        .header-btn {
+            padding: 8px 16px;
+            background: #4a6ee0;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.3s;
+        }
+        
+        .header-btn:hover {
+            background: #3a5ed0;
+        }
+        
+        /* 发送通知按钮特殊样式 */
+        .batch-action-btn.notify {
+            background: #2ecc71 !important;
+        }
+        
+        .batch-action-btn.notify:hover {
+            background: #27ae60 !important;
+        }
+        
+        /* 通知统计信息 */
+        #notificationStats {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 6px;
+            font-size: 0.9rem;
+        }
+        
+        #notificationStats div {
+            margin-bottom: 5px;
+        }
+        
+        #notificationStats div:last-child {
+            margin-bottom: 0;
+        }
+        
+        /* 登录页面样式 */
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background: #f5f7fa;
+        }
+        
+        .login-box {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 40px;
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .login-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .login-header h1 {
+            color: #4a6ee0;
+            margin-bottom: 10px;
+        }
+        
+        .login-header p {
+            color: #666;
+        }
+        
+        /* 发送通知用户列表样式 */
+        .notification-users-container {
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            max-height: 250px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+        
+        .notification-user-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .notification-user-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .notification-user-item.selected {
+            background: #e3f2fd;
+        }
+        
+        .notification-user-checkbox {
+            margin-right: 10px;
+        }
+        
+        .notification-users-search {
+            margin-bottom: 10px;
+        }
+        
+        .notification-users-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .notification-users-count {
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .notification-search-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .notification-search-input {
+            flex: 1;
+            min-width: 150px;
+        }
+        
+        .notification-buttons-container {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            flex-wrap: wrap;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .admin-container{padding:10px}.admin-header{flex-direction:column;gap:15px;align-items:flex-start}.stats-container{grid-template-columns:1fr}th,td{padding:8px 10px;font-size:0.9rem}.tabs{flex-wrap:wrap}.tab{flex:1;min-width:120px;text-align:center}.search-container{flex-direction:column}.search-input{min-width:auto}.batch-actions{flex-direction:column;align-items:flex-start}.network-graph-container{height:500px}.graph-stats{grid-template-columns:1fr 1fr}.graph-filters{flex-direction:column}
+            
+            .login-box {
+                padding: 20px;
+                margin: 20px;
+            }
+            
+            .modal {
+                max-width: 95%;
+                margin: 20px;
+            }
+            
+            .notification-search-container {
+                flex-direction: column;
+            }
+            
+            .notification-buttons-container {
+                flex-direction: column;
+            }
+            
+            .notification-users-container {
+                max-height: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 登录页面 -->
+    <div class="login-container" id="loginPage">
+        <div class="login-box">
+            <div class="login-header">
+                <h1>聊天室后台管理系统</h1>
+                <p>请使用官方账号登录</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">官方账号名称</label>
+                <input type="text" class="form-input" id="officialUsername" placeholder="输入官方账号名称">
+            </div>
+            <div class="form-group">
+                <label class="form-label">密码</label>
+                <input type="password" class="form-input" id="officialPassword" placeholder="输入密码">
+            </div>
+            <button class="modal-btn confirm" id="loginBtn" style="width: 100%;">登录</button>
+            <div class="connection-status" style="justify-content: center; margin-top: 20px;">
+                <div class="status-dot offline" id="loginStatusDot"></div>
+                <span id="loginStatusText">未连接数据库</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- 管理界面 -->
+    <div class="admin-container" id="adminPage" style="display: none;">
+        <div class="admin-header">
+            <h1>📊 聊天室后台管理系统</h1>
+            <div style="display: flex; align-items: center; gap: 20px;">
+                <div class="connection-status">
+                    <div class="status-dot offline" id="statusDot"></div>
+                    <span id="statusText">未连接</span>
+                </div>
+                <div id="officialUserInfo">
+                    <span style="color: #4a6ee0; font-weight: 500;">官方账号已登录</span>
+                    <button class="header-btn" id="sendNotificationBtn" style="margin-left: 10px;">发送通知</button>
+                    <button class="header-btn" id="logoutOfficialBtn" style="margin-left: 5px;">退出</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-number" id="totalUsers">0</div>
+                <div class="stat-label">总用户数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalFriendships">0</div>
+                <div class="stat-label">好友关系数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="totalMessages">0</div>
+                <div class="stat-label">消息总数</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="todayMessages">0</div>
+                <div class="stat-label">今日消息数</div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <div class="tab active" data-tab="users">用户管理</div>
+            <div class="tab" data-tab="friendships">好友关系</div>
+            <div class="tab" data-tab="messages">消息管理</div>
+            <div class="tab" data-tab="network">关系网络图</div>
+        </div>
+        
+        <div class="tab-content active" id="users-tab">
+            <div class="search-container">
+                <input type="text" class="search-input" id="userSearch" placeholder="搜索用户名或好友码...">
+                <button class="search-btn" id="userSearchBtn">搜索</button>
+                <button class="refresh-btn" id="refreshUsers">↻ 刷新</button>
+            </div>
+            
+            <div class="batch-actions" id="usersBatchActions">
+                <button class="batch-action-btn" id="usersSelectAll">全选</button>
+                <button class="batch-action-btn" id="usersSelectNone">取消全选</button>
+                <button class="batch-action-btn delete" id="usersBatchDelete" disabled>批量删除</button>
+                <button class="batch-action-btn notify" id="usersSendNotification" disabled>发送通知</button>
+                <span class="selected-count" id="usersSelectedCount">已选择 0 项</span>
+            </div>
+            
+            <div class="table-container">
+                <table id="usersTable">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="usersSelectAllCheckbox">
+                            </th>
+                            <th class="sortable" data-sort="username">用户名</th>
+                            <th class="sortable" data-sort="friend_code">好友码</th>
+                            <th class="sortable" data-sort="created_at">注册时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="usersPagination">
+            </div>
+        </div>
+        
+        <div class="tab-content" id="friendships-tab">
+            <div class="search-container">
+                <input type="text" class="search-input" id="friendshipSearch" placeholder="搜索用户名...">
+                <button class="search-btn" id="friendshipSearchBtn">搜索</button>
+                <button class="refresh-btn" id="refreshFriendships">↻ 刷新</button>
+            </div>
+            
+            <div class="batch-actions" id="friendshipsBatchActions">
+                <button class="batch-action-btn" id="friendshipsSelectAll">全选</button>
+                <button class="batch-action-btn" id="friendshipsSelectNone">取消全选</button>
+                <button class="batch-action-btn delete" id="friendshipsBatchDelete" disabled>批量删除</button>
+                <span class="selected-count" id="friendshipsSelectedCount">已选择 0 项</span>
+            </div>
+            
+            <div class="table-container">
+                <table id="friendshipsTable">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="friendshipsSelectAllCheckbox">
+                            </th>
+                            <th class="sortable" data-sort="user_id">用户</th>
+                            <th class="sortable" data-sort="friend_id">好友</th>
+                            <th class="sortable" data-sort="status">状态</th>
+                            <th class="sortable" data-sort="created_at">创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="friendshipsTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="friendshipsPagination">
+            </div>
+        </div>
+        
+        <div class="tab-content" id="messages-tab">
+            <div class="search-container">
+                <input type="text" class="search-input" id="messageSearch" placeholder="搜索用户名或消息内容...">
+                <button class="search-btn" id="messageSearchBtn">搜索</button>
+                <button class="refresh-btn" id="refreshMessages">↻ 刷新</button>
+            </div>
+            
+            <div class="batch-actions" id="messagesBatchActions">
+                <button class="batch-action-btn" id="messagesSelectAll">全选</button>
+                <button class="batch-action-btn" id="messagesSelectNone">取消全选</button>
+                <button class="batch-action-btn delete" id="messagesBatchDelete" disabled>批量删除</button>
+                <span class="selected-count" id="messagesSelectedCount">已选择 0 项</span>
+            </div>
+            
+            <div class="table-container">
+                <table id="messagesTable">
+                    <thead>
+                        <tr>
+                            <th class="checkbox-cell">
+                                <input type="checkbox" id="messagesSelectAllCheckbox">
+                            </th>
+                            <th class="sortable" data-sort="sender_id">发送者</th>
+                            <th>方向</th>
+                            <th class="sortable" data-sort="receiver_id">接收者</th>
+                            <th class="sortable" data-sort="content">内容</th>
+                            <th class="sortable" data-sort="is_recalled">是否撤回</th>
+                            <th class="sortable" data-sort="created_at">发送时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody id="messagesTableBody">
+                    </tbody>
+                </table>
+            </div>
+            <div class="pagination" id="messagesPagination">
+            </div>
+        </div>
+        
+        <div class="tab-content" id="network-tab">
+            <div class="search-container">
+                <input type="text" class="search-input" id="graphSearch" placeholder="搜索用户...">
+                <button class="search-btn" id="graphSearchBtn">搜索</button>
+                <button class="refresh-btn" id="refreshGraph">↻ 刷新图表</button>
+            </div>
+            
+            <div class="graph-stats">
+                <div class="graph-stat-card">
+                    <div class="graph-stat-number" id="graphNodeCount">0</div>
+                    <div class="graph-stat-label">用户节点</div>
+                </div>
+                <div class="graph-stat-card">
+                    <div class="graph-stat-number" id="graphLinkCount">0</div>
+                    <div class="graph-stat-label">好友关系</div>
+                </div>
+                <div class="graph-stat-card">
+                    <div class="graph-stat-number" id="graphIsolatedCount">0</div>
+                    <div class="graph-stat-label">孤立用户</div>
+                </div>
+                <div class="graph-stat-card">
+                    <div class="graph-stat-number" id="graphConnectedCount">0</div>
+                    <div class="graph-stat-label">最大连接组</div>
+                </div>
+            </div>
+            
+            <div class="graph-filters">
+                <div class="filter-group">
+                    <label class="filter-label">节点大小</label>
+                    <select class="filter-select" id="nodeSizeFilter">
+                        <option value="degree">按好友数</option>
+                        <option value="fixed">固定大小</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">布局算法</label>
+                    <select class="filter-select" id="layoutFilter">
+                        <option value="force">力导向布局</option>
+                        <option value="radial">径向布局</option>
+                        <option value="circular">圆形布局</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label class="filter-label">显示标签</label>
+                    <select class="filter-select" id="labelFilter">
+                        <option value="all">全部显示</option>
+                        <option value="selected">仅选中</option>
+                        <option value="none">不显示</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="network-graph-container" id="networkGraph">
+                <!-- 图例已移除 -->
+            </div>
+            
+            <div class="graph-info-panel">
+                <div class="info-panel-header">
+                    <span>网络图信息</span>
+                    <button class="action-btn" id="toggleInfoPanel">折叠</button>
+                </div>
+                <div class="info-panel-content" id="infoPanelContent">
+                    <div class="info-item">
+                        <span>总用户数</span>
+                        <span id="infoTotalUsers">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span>总好友关系数</span>
+                        <span id="infoTotalRelationships">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span>网络密度</span>
+                        <span id="infoNetworkDensity">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span>平均好友数</span>
+                        <span id="infoAverageDegree">0</span>
+                    </div>
+                    <div class="info-item">
+                        <span>最大好友数</span>
+                        <span id="infoMaxDegree">0</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 编辑用户模态框 -->
+    <div class="modal-overlay" id="editUserModal">
+        <div class="modal">
+            <div class="modal-header">编辑用户信息</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">用户ID</label>
+                    <input type="text" class="form-input" id="editUserId" readonly>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">用户名</label>
+                    <input type="text" class="form-input" id="editUsername" placeholder="输入用户名">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">密码</label>
+                    <input type="password" class="form-input" id="editPassword" placeholder="输入新密码（留空则不修改）">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">好友码</label>
+                    <input type="text" class="form-input" id="editFriendCode" placeholder="输入好友码">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">头像URL</label>
+                    <input type="text" class="form-input" id="editAvatarUrl" placeholder="输入头像URL">
+                </div>
+                <div class="avatar-preview">
+                    <div class="avatar-preview-img" id="editAvatarPreview"></div>
+                    <div class="avatar-preview-text">头像预览</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" id="cancelEditUser">取消</button>
+                <button class="modal-btn confirm" id="confirmEditUser">保存修改</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 删除确认模态框 -->
+    <div class="modal-overlay" id="deleteConfirmModal">
+        <div class="modal">
+            <div class="modal-header">确认删除</div>
+            <div class="modal-body" id="deleteConfirmMessage">
+                确定要删除这条记录吗？此操作不可恢复。
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" id="cancelDelete">取消</button>
+                <button class="modal-btn confirm" id="confirmDelete">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 批量删除确认模态框 -->
+    <div class="modal-overlay" id="batchDeleteConfirmModal">
+        <div class="modal">
+            <div class="modal-header">确认批量删除</div>
+            <div class="modal-body" id="batchDeleteConfirmMessage">
+                确定要删除选中的记录吗？此操作不可恢复。
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" id="cancelBatchDelete">取消</button>
+                <button class="modal-btn confirm" id="confirmBatchDelete">确认删除</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 发送通知模态框 -->
+    <div class="modal-overlay" id="sendNotificationModal">
+        <div class="modal">
+            <div class="modal-header">发送通知消息</div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label class="form-label">通知内容</label>
+                    <textarea class="form-input" id="notificationContent" placeholder="输入通知消息内容" rows="5"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">发送给</label>
+                    <div>
+                        <label><input type="radio" name="sendTo" value="selected" checked> 选中的用户</label>
+                        <label style="margin-left: 15px;"><input type="radio" name="sendTo" value="all"> 所有用户</label>
+                        <label style="margin-left: 15px;"><input type="radio" name="sendTo" value="custom"> 自定义选择</label>
+                    </div>
+                </div>
+                
+                <!-- 自定义用户选择区域 -->
+                <div id="customUserSelection" style="display: none; margin-top: 15px;">
+                    <div class="notification-users-header">
+                        <h4>选择用户</h4>
+                        <span class="notification-users-count" id="customSelectedCount">已选择 0 个用户</span>
+                    </div>
+                    
+                    <div class="notification-search-container">
+                        <input type="text" class="search-input notification-search-input" id="notificationUserSearch" placeholder="搜索用户名...">
+                        <button class="search-btn" id="notificationUserSearchBtn">搜索</button>
+                    </div>
+                    
+                    <div class="notification-buttons-container">
+                        <button class="batch-action-btn" id="notificationSelectAll">全选</button>
+                        <button class="batch-action-btn" id="notificationSelectNone">取消全选</button>
+                    </div>
+                    
+                    <div class="notification-users-container" id="notificationUsersList">
+                        <!-- 用户列表将通过JavaScript动态填充 -->
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label class="form-label">发送统计</label>
+                    <div id="notificationStats">
+                        <div>将发送给: <span id="recipientCount">0</span> 个用户</div>
+                        <div>当前选中: <span id="selectedUsersCount">0</span> 个用户</div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="modal-btn cancel" id="cancelSendNotification">取消</button>
+                <button class="modal-btn confirm" id="confirmSendNotification">发送通知</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 配置Supabase
+        const SUPABASE_URL = 'https://rudtcwlggkaxykrhhdsn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ1ZHRjd2xnZ2theHlrcmhoZHNuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTkzMzkyNjEsImV4cCI6MjA3NDkxNTI2MX0.Tb1zZvaRS2rppM1_7ka4WgpIh_PFxc4bLVHPG9T0AKg';
+        
+        // 官方账号标识
+        const OFFICIAL_USERNAME = 'admin';
+        
+        let supabase = null;
+        let isConnected = false;
+        let userCache = new Map();
+        let currentEditingUser = null;
+        let currentDeleteItem = {type: null, id: null};
+        
+        // 官方登录相关变量
+        let isOfficialLoggedIn = false;
+        let officialSession = null;
+        
+        let currentUsersPage = 1;
+        let currentFriendshipsPage = 1;
+        let currentMessagesPage = 1;
+        const itemsPerPage = 10;
+        
+        let usersSortState = {field: 'created_at', order: 'desc'};
+        let friendshipsSortState = {field: 'created_at', order: 'desc'};
+        let messagesSortState = {field: 'created_at', order: 'desc'};
+        
+        let selectedUsers = new Set();
+        let selectedFriendships = new Set();
+        let selectedMessages = new Set();
+        
+        let graphData = {nodes: [], links: []};
+        let simulation = null;
+        let svg = null;
+        let zoom = null;
+        let tooltip = null;
+        let isInfoPanelCollapsed = false;
+        
+        // 发送通知相关变量
+        let notificationSelectedUsers = new Set();
+        
+        const elements = {};
+        
+        // 初始化系统
+        function init() {
+            cacheDOMElements();
+            initializeSupabase();
+            setupEventListeners();
+        }
+        
+        // 缓存DOM元素
+        function cacheDOMElements() {
+            // 登录页面元素
+            elements.loginPage = document.getElementById('loginPage');
+            elements.adminPage = document.getElementById('adminPage');
+            elements.officialUsername = document.getElementById('officialUsername');
+            elements.officialPassword = document.getElementById('officialPassword');
+            elements.loginBtn = document.getElementById('loginBtn');
+            elements.loginStatusDot = document.getElementById('loginStatusDot');
+            elements.loginStatusText = document.getElementById('loginStatusText');
+            
+            // 管理界面元素
+            elements.statusDot = document.getElementById('statusDot');
+            elements.statusText = document.getElementById('statusText');
+            elements.tabs = document.querySelectorAll('.tab');
+            elements.tabContents = document.querySelectorAll('.tab-content');
+            
+            elements.totalUsers = document.getElementById('totalUsers');
+            elements.totalFriendships = document.getElementById('totalFriendships');
+            elements.totalMessages = document.getElementById('totalMessages');
+            elements.todayMessages = document.getElementById('todayMessages');
+            
+            elements.usersTableBody = document.getElementById('usersTableBody');
+            elements.usersPagination = document.getElementById('usersPagination');
+            elements.userSearch = document.getElementById('userSearch');
+            elements.userSearchBtn = document.getElementById('userSearchBtn');
+            elements.refreshUsers = document.getElementById('refreshUsers');
+            elements.usersSelectAll = document.getElementById('usersSelectAll');
+            elements.usersSelectNone = document.getElementById('usersSelectNone');
+            elements.usersBatchDelete = document.getElementById('usersBatchDelete');
+            elements.usersSendNotification = document.getElementById('usersSendNotification');
+            elements.usersSelectedCount = document.getElementById('usersSelectedCount');
+            elements.usersSelectAllCheckbox = document.getElementById('usersSelectAllCheckbox');
+            
+            elements.friendshipsTableBody = document.getElementById('friendshipsTableBody');
+            elements.friendshipsPagination = document.getElementById('friendshipsPagination');
+            elements.friendshipSearch = document.getElementById('friendshipSearch');
+            elements.friendshipSearchBtn = document.getElementById('friendshipSearchBtn');
+            elements.refreshFriendships = document.getElementById('refreshFriendships');
+            elements.friendshipsSelectAll = document.getElementById('friendshipsSelectAll');
+            elements.friendshipsSelectNone = document.getElementById('friendshipsSelectNone');
+            elements.friendshipsBatchDelete = document.getElementById('friendshipsBatchDelete');
+            elements.friendshipsSelectedCount = document.getElementById('friendshipsSelectedCount');
+            elements.friendshipsSelectAllCheckbox = document.getElementById('friendshipsSelectAllCheckbox');
+            
+            elements.messagesTableBody = document.getElementById('messagesTableBody');
+            elements.messagesPagination = document.getElementById('messagesPagination');
+            elements.messageSearch = document.getElementById('messageSearch');
+            elements.messageSearchBtn = document.getElementById('messageSearchBtn');
+            elements.refreshMessages = document.getElementById('refreshMessages');
+            elements.messagesSelectAll = document.getElementById('messagesSelectAll');
+            elements.messagesSelectNone = document.getElementById('messagesSelectNone');
+            elements.messagesBatchDelete = document.getElementById('messagesBatchDelete');
+            elements.messagesSelectedCount = document.getElementById('messagesSelectedCount');
+            elements.messagesSelectAllCheckbox = document.getElementById('messagesSelectAllCheckbox');
+            
+            elements.networkGraph = document.getElementById('networkGraph');
+            elements.graphSearch = document.getElementById('graphSearch');
+            elements.graphSearchBtn = document.getElementById('graphSearchBtn');
+            elements.refreshGraph = document.getElementById('refreshGraph');
+            elements.nodeSizeFilter = document.getElementById('nodeSizeFilter');
+            elements.layoutFilter = document.getElementById('layoutFilter');
+            elements.labelFilter = document.getElementById('labelFilter');
+            elements.toggleInfoPanel = document.getElementById('toggleInfoPanel');
+            elements.infoPanelContent = document.getElementById('infoPanelContent');
+            
+            elements.graphNodeCount = document.getElementById('graphNodeCount');
+            elements.graphLinkCount = document.getElementById('graphLinkCount');
+            elements.graphIsolatedCount = document.getElementById('graphIsolatedCount');
+            elements.graphConnectedCount = document.getElementById('graphConnectedCount');
+            
+            elements.infoTotalUsers = document.getElementById('infoTotalUsers');
+            elements.infoTotalRelationships = document.getElementById('infoTotalRelationships');
+            elements.infoNetworkDensity = document.getElementById('infoNetworkDensity');
+            elements.infoAverageDegree = document.getElementById('infoAverageDegree');
+            elements.infoMaxDegree = document.getElementById('infoMaxDegree');
+            
+            elements.editUserModal = document.getElementById('editUserModal');
+            elements.editUserId = document.getElementById('editUserId');
+            elements.editUsername = document.getElementById('editUsername');
+            elements.editPassword = document.getElementById('editPassword');
+            elements.editFriendCode = document.getElementById('editFriendCode');
+            elements.editAvatarUrl = document.getElementById('editAvatarUrl');
+            elements.editAvatarPreview = document.getElementById('editAvatarPreview');
+            elements.cancelEditUser = document.getElementById('cancelEditUser');
+            elements.confirmEditUser = document.getElementById('confirmEditUser');
+            
+            elements.deleteConfirmModal = document.getElementById('deleteConfirmModal');
+            elements.deleteConfirmMessage = document.getElementById('deleteConfirmMessage');
+            elements.cancelDelete = document.getElementById('cancelDelete');
+            elements.confirmDelete = document.getElementById('confirmDelete');
+            
+            elements.batchDeleteConfirmModal = document.getElementById('batchDeleteConfirmModal');
+            elements.batchDeleteConfirmMessage = document.getElementById('batchDeleteConfirmMessage');
+            elements.cancelBatchDelete = document.getElementById('cancelBatchDelete');
+            elements.confirmBatchDelete = document.getElementById('confirmBatchDelete');
+            
+            // 官方登录相关元素
+            elements.officialUserInfo = document.getElementById('officialUserInfo');
+            elements.sendNotificationBtn = document.getElementById('sendNotificationBtn');
+            elements.logoutOfficialBtn = document.getElementById('logoutOfficialBtn');
+            
+            // 发送通知相关元素
+            elements.sendNotificationModal = document.getElementById('sendNotificationModal');
+            elements.notificationContent = document.getElementById('notificationContent');
+            elements.cancelSendNotification = document.getElementById('cancelSendNotification');
+            elements.confirmSendNotification = document.getElementById('confirmSendNotification');
+            elements.recipientCount = document.getElementById('recipientCount');
+            elements.selectedUsersCount = document.getElementById('selectedUsersCount');
+            elements.customUserSelection = document.getElementById('customUserSelection');
+            elements.customSelectedCount = document.getElementById('customSelectedCount');
+            elements.notificationUserSearch = document.getElementById('notificationUserSearch');
+            elements.notificationUserSearchBtn = document.getElementById('notificationUserSearchBtn');
+            elements.notificationSelectAll = document.getElementById('notificationSelectAll');
+            elements.notificationSelectNone = document.getElementById('notificationSelectNone');
+            elements.notificationUsersList = document.getElementById('notificationUsersList');
+        }
+        
+        // 设置事件监听器
+        function setupEventListeners() {
+            // 登录页面事件
+            elements.loginBtn.addEventListener('click', handleOfficialLogin);
+            elements.officialPassword.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    handleOfficialLogin();
+                }
+            });
+            
+            // 管理页面事件
+            elements.tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    const tabId = tab.getAttribute('data-tab');
+                    switchTab(tabId);
+                });
+            });
+            
+            elements.userSearchBtn.addEventListener('click', () => {
+                currentUsersPage = 1;
+                loadUsersData();
+            });
+            
+            elements.friendshipSearchBtn.addEventListener('click', () => {
+                currentFriendshipsPage = 1;
+                loadFriendshipsData();
+            });
+            
+            elements.messageSearchBtn.addEventListener('click', () => {
+                currentMessagesPage = 1;
+                loadMessagesData();
+            });
+            
+            elements.graphSearchBtn.addEventListener('click', () => {
+                filterGraphBySearch();
+            });
+            
+            elements.refreshUsers.addEventListener('click', loadUsersData);
+            elements.refreshFriendships.addEventListener('click', loadFriendshipsData);
+            elements.refreshMessages.addEventListener('click', loadMessagesData);
+            elements.refreshGraph.addEventListener('click', initializeNetworkGraph);
+            
+            elements.userSearch.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    currentUsersPage = 1;
+                    loadUsersData();
+                }
+            });
+            
+            elements.friendshipSearch.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    currentFriendshipsPage = 1;
+                    loadFriendshipsData();
+                }
+            });
+            
+            elements.messageSearch.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    currentMessagesPage = 1;
+                    loadMessagesData();
+                }
+            });
+            
+            elements.graphSearch.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    filterGraphBySearch();
+                }
+            });
+            
+            elements.cancelEditUser.addEventListener('click', () => {
+                elements.editUserModal.classList.remove('show');
+                currentEditingUser = null;
+            });
+            
+            elements.confirmEditUser.addEventListener('click', saveUserInfo);
+            
+            elements.editAvatarUrl.addEventListener('input', function() {
+                updateAvatarPreview('editAvatarPreview', this.value, elements.editUsername.value);
+            });
+            
+            elements.cancelDelete.addEventListener('click', () => {
+                elements.deleteConfirmModal.classList.remove('show');
+                currentDeleteItem = {type: null, id: null};
+            });
+            
+            elements.confirmDelete.addEventListener('click', deleteItem);
+            
+            elements.cancelBatchDelete.addEventListener('click', () => {
+                elements.batchDeleteConfirmModal.classList.remove('show');
+            });
+            
+            elements.confirmBatchDelete.addEventListener('click', batchDeleteItems);
+            
+            // 官方登录相关事件
+            elements.logoutOfficialBtn.addEventListener('click', handleOfficialLogout);
+            elements.sendNotificationBtn.addEventListener('click', openSendNotificationModal);
+            
+            // 发送通知相关事件
+            elements.cancelSendNotification.addEventListener('click', closeSendNotificationModal);
+            elements.confirmSendNotification.addEventListener('click', sendNotifications);
+            
+            // 用户管理中的发送通知按钮
+            elements.usersSendNotification.addEventListener('click', openSendNotificationModal);
+            
+            // 监听发送对象选择变化
+            document.querySelectorAll('input[name="sendTo"]').forEach(radio => {
+                radio.addEventListener('change', updateNotificationStats);
+            });
+            
+            // 发送通知用户列表相关事件
+            elements.notificationUserSearchBtn.addEventListener('click', loadNotificationUsers);
+            elements.notificationUserSearch.addEventListener('keypress', e => {
+                if (e.key === 'Enter') {
+                    loadNotificationUsers();
+                }
+            });
+            elements.notificationSelectAll.addEventListener('click', () => selectAllNotificationUsers());
+            elements.notificationSelectNone.addEventListener('click', () => selectNoneNotificationUsers());
+            
+            setupTableSorting();
+            setupBatchActions();
+            setupGraphFilters();
+            elements.toggleInfoPanel.addEventListener('click', toggleInfoPanelVisibility);
+        }
+        
+        // 切换标签页
+        function switchTab(tabId) {
+            elements.tabs.forEach(t => t.classList.remove('active'));
+            elements.tabContents.forEach(content => content.classList.remove('active'));
+            
+            document.querySelector(`.tab[data-tab="${tabId}"]`).classList.add('active');
+            document.getElementById(`${tabId}-tab`).classList.add('active');
+            
+            switch(tabId) {
+                case 'users':
+                    loadUsersData();
+                    break;
+                case 'friendships':
+                    loadFriendshipsData();
+                    break;
+                case 'messages':
+                    loadMessagesData();
+                    break;
+                case 'network':
+                    initializeNetworkGraph();
+                    break;
+            }
+        }
+        
+        // 初始化Supabase
+        function initializeSupabase() {
+            try {
+                supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+                testConnection();
+            } catch (error) {
+                console.error('初始化Supabase错误:', error);
+                updateConnectionStatus(false);
+            }
+        }
+        
+        // 测试连接
+        async function testConnection() {
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('*')
+                    .limit(1);
+                
+                if (error) {
+                    console.error('连接测试失败:', error);
+                    updateConnectionStatus(false);
+                } else {
+                    updateConnectionStatus(true);
+                }
+            } catch (error) {
+                console.error('连接测试失败:', error);
+                updateConnectionStatus(false);
+            }
+        }
+        
+        // 更新连接状态
+        function updateConnectionStatus(connected) {
+            isConnected = connected;
+            if (connected) {
+                elements.statusDot.classList.remove('offline');
+                elements.statusText.textContent = '已连接到Supabase';
+                elements.loginStatusDot.classList.remove('offline');
+                elements.loginStatusText.textContent = '已连接到数据库';
+            } else {
+                elements.statusDot.classList.add('offline');
+                elements.statusText.textContent = '连接失败';
+                elements.loginStatusDot.classList.add('offline');
+                elements.loginStatusText.textContent = '连接数据库失败';
+            }
+        }
+        
+        // 官方登录处理
+        async function handleOfficialLogin() {
+            const username = elements.officialUsername.value.trim();
+            const password = elements.officialPassword.value.trim();
+            
+            if (!username || !password) {
+                alert('请输入官方账号名称和密码');
+                return;
+            }
+            
+            try {
+                // 验证官方账号
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, username, password')
+                    .eq('username', username);
+                
+                if (error) throw error;
+                
+                if (!data || data.length === 0) {
+                    alert('官方账号不存在');
+                    return;
+                }
+                
+                const officialAccount = data[0];
+                
+                // 验证密码（这里假设密码是明文存储，实际应用中应该使用加密验证）
+                if (officialAccount.password !== password) {
+                    alert('密码错误');
+                    return;
+                }
+                
+                // 登录成功
+                isOfficialLoggedIn = true;
+                officialSession = {
+                    id: officialAccount.id,
+                    username: officialAccount.username
+                };
+                
+                // 切换到管理界面
+                elements.loginPage.style.display = 'none';
+                elements.adminPage.style.display = 'block';
+                
+                // 加载管理数据
+                loadStats();
+                loadUsersData();
+                loadAllUsers();
+                
+                alert('官方账号登录成功！');
+                
+            } catch (error) {
+                console.error('官方登录错误:', error);
+                alert('登录失败: ' + error.message);
+            }
+        }
+        
+        // 官方登出处理
+        function handleOfficialLogout() {
+            isOfficialLoggedIn = false;
+            officialSession = null;
+            
+            // 切换回登录界面
+            elements.loginPage.style.display = 'flex';
+            elements.adminPage.style.display = 'none';
+            
+            // 清空登录表单
+            elements.officialUsername.value = '';
+            elements.officialPassword.value = '';
+            
+            alert('官方账号已退出');
+        }
+        
+        // 加载统计数据
+        async function loadStats() {
+            if (!supabase) return;
+            
+            try {
+                const { count: usersCount, error: usersError } = await supabase
+                    .from('profiles')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (!usersError) {
+                    elements.totalUsers.textContent = usersCount || 0;
+                }
+                
+                const { count: friendshipsCount, error: friendshipsError } = await supabase
+                    .from('friends')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (!friendshipsError) {
+                    elements.totalFriendships.textContent = friendshipsCount || 0;
+                }
+                
+                const { count: messagesCount, error: messagesError } = await supabase
+                    .from('private_messages')
+                    .select('*', { count: 'exact', head: true });
+                
+                if (!messagesError) {
+                    elements.totalMessages.textContent = messagesCount || 0;
+                }
+                
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayISO = today.toISOString();
+                
+                const { count: todayMessagesCount, error: todayMessagesError } = await supabase
+                    .from('private_messages')
+                    .select('*', { count: 'exact', head: true })
+                    .gte('created_at', todayISO);
+                
+                if (!todayMessagesError) {
+                    elements.todayMessages.textContent = todayMessagesCount || 0;
+                }
+                
+            } catch (error) {
+                console.error('加载统计数据错误:', error);
+            }
+        }
+        
+        // 加载所有用户到缓存
+        async function loadAllUsers() {
+            if (!supabase) return;
+            
+            try {
+                const { data, error } = await supabase
+                    .from('profiles')
+                    .select('id, username, friend_code, avatar_url, created_at');
+                
+                if (error) throw error;
+                
+                userCache.clear();
+                
+                data.forEach(user => {
+                    userCache.set(user.id, {
+                        username: user.username,
+                        friend_code: user.friend_code,
+                        avatar_url: user.avatar_url,
+                        created_at: user.created_at
+                    });
+                });
+                
+            } catch (error) {
+                console.error('加载用户缓存错误:', error);
+            }
+        }
+        
+        // 获取用户名
+        function getUserName(userId) {
+            const user = userCache.get(userId);
+            return user ? user.username : `用户(${userId.substring(0, 8)}...)`;
+        }
+        
+        // 获取用户头像HTML
+        function getUserAvatar(userId) {
+            const user = userCache.get(userId);
+            const username = user ? user.username : `用户(${userId.substring(0, 8)}...)`;
+            const avatarUrl = user ? user.avatar_url : null;
+            
+            if (avatarUrl && isValidUrl(avatarUrl)) {
+                return `
+                    <div class="user-info">
+                        <img src="${avatarUrl}" class="user-avatar-img" alt="${username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                        <div class="user-avatar" style="display: none">${username.charAt(0).toUpperCase()}</div>
+                        ${username}
+                    </div>
+                `;
+            } else {
+                const initial = username.charAt(0).toUpperCase();
+                return `
+                    <div class="user-info">
+                        <div class="user-avatar">${initial}</div>
+                        ${username}
+                    </div>
+                `;
+            }
+        }
+        
+        // 检查URL是否有效
+        function isValidUrl(string) {
+            try {
+                new URL(string);
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        // 加载用户数据
+        async function loadUsersData() {
+            if (!supabase) return;
+            
+            try {
+                elements.usersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5">
+                            <div class="loading-container">
+                                <div class="loading-spinner"></div>
+                                <div>正在加载用户数据...</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                
+                let query = supabase
+                    .from('profiles')
+                    .select('*', { count: 'exact' });
+                
+                const searchTerm = elements.userSearch.value.trim();
+                if (searchTerm) {
+                    query = query.or(`username.ilike.%${searchTerm}%,friend_code.ilike.%${searchTerm}%`);
+                }
+                
+                query = query.order(usersSortState.field, { 
+                    ascending: usersSortState.order === 'asc' 
+                });
+                
+                const from = (currentUsersPage - 1) * itemsPerPage;
+                const to = from + itemsPerPage - 1;
+                query = query.range(from, to);
+                
+                const { data, error, count } = await query;
+                
+                if (error) throw error;
+                
+                elements.usersTableBody.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach(user => {
+                        const isChecked = selectedUsers.has(user.id);
+                        const username = user.username || `用户(${user.id.substring(0, 8)}...)`;
+                        const initial = username.charAt(0).toUpperCase();
+                        const avatarUrl = user.avatar_url;
+                        
+                        let avatarHtml = '';
+                        if (avatarUrl && isValidUrl(avatarUrl)) {
+                            avatarHtml = `
+                                <img src="${avatarUrl}" class="user-avatar-img" alt="${username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                                <div class="user-avatar" style="display: none">${initial}</div>
+                            `;
+                        } else {
+                            avatarHtml = `<div class="user-avatar">${initial}</div>`;
+                        }
+                        
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="checkbox-cell">
+                                <input type="checkbox" class="user-checkbox" data-id="${user.id}" ${isChecked ? 'checked' : ''}>
+                            </td>
+                            <td>
+                                <div class="user-info">
+                                    ${avatarHtml}
+                                    ${username}
+                                </div>
+                            </td>
+                            <td>${user.friend_code || 'N/A'}</td>
+                            <td>${formatDate(user.created_at)}</td>
+                            <td>
+                                <button class="action-btn edit" onclick="openEditUserModal('${user.id}', '${escapeSingleQuote(user.username || '')}', '${escapeSingleQuote(user.friend_code || '')}', '${escapeSingleQuote(user.avatar_url || '')}')">编辑</button>
+                                <button class="action-btn delete" onclick="confirmDeleteItem('user', '${user.id}', '${escapeSingleQuote(user.username || '')}')">删除</button>
+                            </td>
+                        `;
+                        elements.usersTableBody.appendChild(row);
+                    });
+                    
+                    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+                        checkbox.addEventListener('change', function() {
+                            const userId = this.getAttribute('data-id');
+                            if (this.checked) {
+                                selectedUsers.add(userId);
+                            } else {
+                                selectedUsers.delete(userId);
+                            }
+                            updateSelectedCount('users');
+                        });
+                    });
+                } else {
+                    elements.usersTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="no-data">没有找到用户数据</td>
+                        </tr>
+                    `;
+                }
+                
+                updatePagination(elements.usersPagination, currentUsersPage, count, 'users');
+                updateSelectAllCheckbox('users');
+                
+            } catch (error) {
+                console.error('加载用户数据错误:', error);
+                elements.usersTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="no-data">加载用户数据失败</td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // 转义单引号
+        function escapeSingleQuote(str) {
+            return str.replace(/'/g, "\\'");
+        }
+        
+        // 打开编辑用户模态框
+        function openEditUserModal(userId, username, friendCode, avatarUrl) {
+            currentEditingUser = userId;
+            
+            elements.editUserId.value = userId;
+            elements.editUsername.value = username || '';
+            elements.editFriendCode.value = friendCode || '';
+            elements.editAvatarUrl.value = avatarUrl || '';
+            elements.editPassword.value = '';
+            
+            updateAvatarPreview('editAvatarPreview', avatarUrl, username);
+            
+            elements.editUserModal.classList.add('show');
+        }
+        
+        // 更新头像预览
+        function updateAvatarPreview(previewId, avatarUrl, username) {
+            const preview = document.getElementById(previewId);
+            const initial = username ? username.charAt(0).toUpperCase() : 'U';
+            
+            if (avatarUrl && isValidUrl(avatarUrl)) {
+                preview.style.backgroundImage = `url(${avatarUrl})`;
+                preview.textContent = '';
+                
+                const img = new Image();
+                img.onerror = function() {
+                    preview.style.backgroundImage = '';
+                    preview.textContent = initial;
+                    preview.style.backgroundColor = '#4a6ee0';
+                };
+                img.src = avatarUrl;
+            } else {
+                preview.style.backgroundImage = '';
+                preview.textContent = initial;
+                preview.style.backgroundColor = '#4a6ee0';
+            }
+        }
+        
+        // 保存用户信息
+        async function saveUserInfo() {
+            if (!supabase || !currentEditingUser) return;
+            
+            const username = elements.editUsername.value.trim();
+            const password = elements.editPassword.value.trim();
+            const friendCode = elements.editFriendCode.value.trim();
+            const avatarUrl = elements.editAvatarUrl.value.trim();
+            
+            if (!username) {
+                alert('请输入用户名');
+                return;
+            }
+            
+            try {
+                const updateData = {
+                    username: username,
+                    friend_code: friendCode || null,
+                    avatar_url: avatarUrl || null
+                };
+                
+                if (password) {
+                    updateData.password = password;
+                }
+                
+                const { error } = await supabase
+                    .from('profiles')
+                    .update(updateData)
+                    .eq('id', currentEditingUser);
+                
+                if (error) throw error;
+                
+                alert('用户信息修改成功');
+                elements.editUserModal.classList.remove('show');
+                currentEditingUser = null;
+                
+                loadUsersData();
+                loadAllUsers();
+                
+            } catch (error) {
+                console.error('修改用户信息错误:', error);
+                alert('修改用户信息失败: ' + error.message);
+            }
+        }
+        
+        // 设置表格排序
+        function setupTableSorting() {
+            document.querySelectorAll('#usersTable th.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const field = th.getAttribute('data-sort');
+                    if (usersSortState.field === field) {
+                        usersSortState.order = usersSortState.order === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        usersSortState.field = field;
+                        usersSortState.order = 'asc';
+                    }
+                    updateSortIndicators('usersTable', usersSortState);
+                    loadUsersData();
+                });
+            });
+            
+            document.querySelectorAll('#friendshipsTable th.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const field = th.getAttribute('data-sort');
+                    if (friendshipsSortState.field === field) {
+                        friendshipsSortState.order = friendshipsSortState.order === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        friendshipsSortState.field = field;
+                        friendshipsSortState.order = 'asc';
+                    }
+                    updateSortIndicators('friendshipsTable', friendshipsSortState);
+                    loadFriendshipsData();
+                });
+            });
+            
+            document.querySelectorAll('#messagesTable th.sortable').forEach(th => {
+                th.addEventListener('click', () => {
+                    const field = th.getAttribute('data-sort');
+                    if (messagesSortState.field === field) {
+                        messagesSortState.order = messagesSortState.order === 'asc' ? 'desc' : 'asc';
+                    } else {
+                        messagesSortState.field = field;
+                        messagesSortState.order = 'asc';
+                    }
+                    updateSortIndicators('messagesTable', messagesSortState);
+                    loadMessagesData();
+                });
+            });
+        }
+        
+        // 更新排序指示器
+        function updateSortIndicators(tableId, sortState) {
+            document.querySelectorAll(`#${tableId} th.sortable`).forEach(th => {
+                th.classList.remove('asc', 'desc');
+            });
+            
+            const currentTh = document.querySelector(`#${tableId} th[data-sort="${sortState.field}"]`);
+            if (currentTh) {
+                currentTh.classList.add(sortState.order);
+            }
+        }
+        
+        // 设置批量操作
+        function setupBatchActions() {
+            elements.usersSelectAll.addEventListener('click', () => selectAllItems('users'));
+            elements.usersSelectNone.addEventListener('click', () => selectNoneItems('users'));
+            elements.usersBatchDelete.addEventListener('click', () => confirmBatchDeleteItems('users'));
+            elements.usersSendNotification.addEventListener('click', () => openSendNotificationModal());
+            elements.usersSelectAllCheckbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    selectAllItems('users');
+                } else {
+                    selectNoneItems('users');
+                }
+            });
+            
+            elements.friendshipsSelectAll.addEventListener('click', () => selectAllItems('friendships'));
+            elements.friendshipsSelectNone.addEventListener('click', () => selectNoneItems('friendships'));
+            elements.friendshipsBatchDelete.addEventListener('click', () => confirmBatchDeleteItems('friendships'));
+            elements.friendshipsSelectAllCheckbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    selectAllItems('friendships');
+                } else {
+                    selectNoneItems('friendships');
+                }
+            });
+            
+            elements.messagesSelectAll.addEventListener('click', () => selectAllItems('messages'));
+            elements.messagesSelectNone.addEventListener('click', () => selectNoneItems('messages'));
+            elements.messagesBatchDelete.addEventListener('click', () => confirmBatchDeleteItems('messages'));
+            elements.messagesSelectAllCheckbox.addEventListener('change', (e) => {
+                if (e.target.checked) {
+                    selectAllItems('messages');
+                } else {
+                    selectNoneItems('messages');
+                }
+            });
+        }
+        
+        // 全选项目
+        function selectAllItems(type) {
+            switch(type) {
+                case 'users':
+                    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+                        checkbox.checked = true;
+                        const userId = checkbox.getAttribute('data-id');
+                        selectedUsers.add(userId);
+                    });
+                    updateSelectedCount('users');
+                    updateSelectAllCheckbox('users');
+                    break;
+                case 'friendships':
+                    document.querySelectorAll('.friendship-checkbox').forEach(checkbox => {
+                        checkbox.checked = true;
+                        const friendshipId = checkbox.getAttribute('data-id');
+                        selectedFriendships.add(friendshipId);
+                    });
+                    updateSelectedCount('friendships');
+                    updateSelectAllCheckbox('friendships');
+                    break;
+                case 'messages':
+                    document.querySelectorAll('.message-checkbox').forEach(checkbox => {
+                        checkbox.checked = true;
+                        const messageId = checkbox.getAttribute('data-id');
+                        selectedMessages.add(messageId);
+                    });
+                    updateSelectedCount('messages');
+                    updateSelectAllCheckbox('messages');
+                    break;
+            }
+        }
+        
+        // 取消选择所有项目
+        function selectNoneItems(type) {
+            switch(type) {
+                case 'users':
+                    document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    selectedUsers.clear();
+                    updateSelectedCount('users');
+                    updateSelectAllCheckbox('users');
+                    break;
+                case 'friendships':
+                    document.querySelectorAll('.friendship-checkbox').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    selectedFriendships.clear();
+                    updateSelectedCount('friendships');
+                    updateSelectAllCheckbox('friendships');
+                    break;
+                case 'messages':
+                    document.querySelectorAll('.message-checkbox').forEach(checkbox => {
+                        checkbox.checked = false;
+                    });
+                    selectedMessages.clear();
+                    updateSelectedCount('messages');
+                    updateSelectAllCheckbox('messages');
+                    break;
+            }
+        }
+        
+        // 更新选中计数
+        function updateSelectedCount(type) {
+            let count = 0;
+            let button = null;
+            let notifyButton = null;
+            let countElement = null;
+            
+            switch(type) {
+                case 'users':
+                    count = selectedUsers.size;
+                    button = elements.usersBatchDelete;
+                    notifyButton = elements.usersSendNotification;
+                    countElement = elements.usersSelectedCount;
+                    break;
+                case 'friendships':
+                    count = selectedFriendships.size;
+                    button = elements.friendshipsBatchDelete;
+                    countElement = elements.friendshipsSelectedCount;
+                    break;
+                case 'messages':
+                    count = selectedMessages.size;
+                    button = elements.messagesBatchDelete;
+                    countElement = elements.messagesSelectedCount;
+                    break;
+            }
+            
+            countElement.textContent = `已选择 ${count} 项`;
+            
+            if (count > 0) {
+                if (button) button.disabled = false;
+                if (notifyButton) {
+                    notifyButton.disabled = !isOfficialLoggedIn;
+                }
+            } else {
+                if (button) button.disabled = true;
+                if (notifyButton) {
+                    notifyButton.disabled = true;
+                }
+            }
+        }
+        
+        // 更新全选复选框
+        function updateSelectAllCheckbox(type) {
+            let allCheckboxes = [];
+            let selectAllCheckbox = null;
+            
+            switch(type) {
+                case 'users':
+                    allCheckboxes = document.querySelectorAll('.user-checkbox');
+                    selectAllCheckbox = elements.usersSelectAllCheckbox;
+                    break;
+                case 'friendships':
+                    allCheckboxes = document.querySelectorAll('.friendship-checkbox');
+                    selectAllCheckbox = elements.friendshipsSelectAllCheckbox;
+                    break;
+                case 'messages':
+                    allCheckboxes = document.querySelectorAll('.message-checkbox');
+                    selectAllCheckbox = elements.messagesSelectAllCheckbox;
+                    break;
+            }
+            
+            if (allCheckboxes.length === 0) {
+                selectAllCheckbox.checked = false;
+                selectAllCheckbox.disabled = true;
+                return;
+            }
+            
+            selectAllCheckbox.disabled = false;
+            
+            const allChecked = Array.from(allCheckboxes).every(checkbox => checkbox.checked);
+            selectAllCheckbox.checked = allChecked;
+        }
+        
+        // 确认批量删除项目
+        function confirmBatchDeleteItems(type) {
+            let count = 0;
+            let itemName = '';
+            
+            switch(type) {
+                case 'users':
+                    count = selectedUsers.size;
+                    itemName = '用户';
+                    break;
+                case 'friendships':
+                    count = selectedFriendships.size;
+                    itemName = '好友关系';
+                    break;
+                case 'messages':
+                    count = selectedMessages.size;
+                    itemName = '消息';
+                    break;
+            }
+            
+            elements.batchDeleteConfirmMessage.textContent = `确定要删除选中的 ${count} 条${itemName}记录吗？此操作不可恢复。`;
+            elements.batchDeleteConfirmModal.classList.add('show');
+            elements.batchDeleteConfirmModal.setAttribute('data-type', type);
+        }
+        
+        // 删除项目
+        async function deleteItem() {
+            if (!supabase || !currentDeleteItem.type || !currentDeleteItem.id) {
+                elements.deleteConfirmModal.classList.remove('show');
+                return;
+            }
+            
+            try {
+                let error;
+                
+                switch(currentDeleteItem.type) {
+                    case 'user':
+                        // 先删除相关的好友关系
+                        await supabase
+                            .from('friends')
+                            .delete()
+                            .or(`user_id.eq.${currentDeleteItem.id},friend_id.eq.${currentDeleteItem.id}`);
+                        
+                        // 再删除相关的消息
+                        await supabase
+                            .from('private_messages')
+                            .delete()
+                            .or(`sender_id.eq.${currentDeleteItem.id},receiver_id.eq.${currentDeleteItem.id}`);
+                        
+                        // 最后删除用户
+                        const { error: userError } = await supabase
+                            .from('profiles')
+                            .delete()
+                            .eq('id', currentDeleteItem.id);
+                        
+                        error = userError;
+                        break;
+                        
+                    case 'friendship':
+                        const { error: friendshipError } = await supabase
+                            .from('friends')
+                            .delete()
+                            .eq('id', currentDeleteItem.id);
+                        
+                        error = friendshipError;
+                        break;
+                        
+                    case 'message':
+                        const { error: messageError } = await supabase
+                            .from('private_messages')
+                            .delete()
+                            .eq('id', currentDeleteItem.id);
+                        
+                        error = messageError;
+                        break;
+                }
+                
+                if (error) throw error;
+                
+                alert('删除成功');
+                elements.deleteConfirmModal.classList.remove('show');
+                currentDeleteItem = {type: null, id: null};
+                
+                loadStats();
+                switch(currentDeleteItem.type) {
+                    case 'user':
+                        loadUsersData();
+                        loadAllUsers();
+                        break;
+                    case 'friendship':
+                        loadFriendshipsData();
+                        break;
+                    case 'message':
+                        loadMessagesData();
+                        break;
+                }
+                
+            } catch (error) {
+                console.error('删除错误:', error);
+                alert('删除失败: ' + error.message);
+            }
+        }
+        
+        // 批量删除项目
+        async function batchDeleteItems() {
+            const type = elements.batchDeleteConfirmModal.getAttribute('data-type');
+            let ids = [];
+            
+            switch(type) {
+                case 'users':
+                    ids = Array.from(selectedUsers);
+                    break;
+                case 'friendships':
+                    ids = Array.from(selectedFriendships);
+                    break;
+                case 'messages':
+                    ids = Array.from(selectedMessages);
+                    break;
+            }
+            
+            if (ids.length === 0) {
+                elements.batchDeleteConfirmModal.classList.remove('show');
+                return;
+            }
+            
+            try {
+                // 添加删除中状态
+                elements.confirmBatchDelete.disabled = true;
+                elements.confirmBatchDelete.textContent = '删除中...';
+                
+                let successCount = 0;
+                let errorCount = 0;
+                
+                // 分批处理，避免URL过长和数据库压力
+                const batchSize = 10; // 每批处理10条记录
+                const totalBatches = Math.ceil(ids.length / batchSize);
+                
+                for (let i = 0; i < totalBatches; i++) {
+                    const startIdx = i * batchSize;
+                    const endIdx = Math.min(startIdx + batchSize, ids.length);
+                    const batchIds = ids.slice(startIdx, endIdx);
+                    
+                    try {
+                        let batchError;
+                        
+                        switch(type) {
+                            case 'users':
+                                // 先删除相关的好友关系
+                                const { error: friendsError } = await supabase
+                                    .from('friends')
+                                    .delete()
+                                    .or(`user_id.in.(${batchIds.join(',')}),friend_id.in.(${batchIds.join(',')})`);
+                                
+                                if (friendsError) throw friendsError;
+                                
+                                // 再删除相关的消息
+                                const { error: messagesError } = await supabase
+                                    .from('private_messages')
+                                    .delete()
+                                    .or(`sender_id.in.(${batchIds.join(',')}),receiver_id.in.(${batchIds.join(',')})`);
+                                
+                                if (messagesError) throw messagesError;
+                                
+                                // 最后删除用户
+                                const { error: userError } = await supabase
+                                    .from('profiles')
+                                    .delete()
+                                    .in('id', batchIds);
+                                
+                                batchError = userError;
+                                break;
+                                
+                            case 'friendships':
+                                const { error: friendshipError } = await supabase
+                                    .from('friends')
+                                    .delete()
+                                    .in('id', batchIds);
+                                
+                                batchError = friendshipError;
+                                break;
+                                
+                            case 'messages':
+                                const { error: messageError } = await supabase
+                                    .from('private_messages')
+                                    .delete()
+                                    .in('id', batchIds);
+                                
+                                batchError = messageError;
+                                break;
+                        }
+                        
+                        if (batchError) {
+                            console.error(`第 ${i + 1} 批删除失败:`, batchError);
+                            errorCount += batchIds.length;
+                            // 继续处理下一批，不中断整个流程
+                        } else {
+                            successCount += batchIds.length;
+                        }
+                        
+                        // 更新进度
+                        const progress = Math.min((i + 1) * batchSize, ids.length);
+                        elements.confirmBatchDelete.textContent = `删除中... ${progress}/${ids.length}`;
+                        
+                        // 添加短暂延迟，避免请求过于频繁
+                        if (i < totalBatches - 1) {
+                            await new Promise(resolve => setTimeout(resolve, 100));
+                        }
+                        
+                    } catch (batchError) {
+                        console.error(`第 ${i + 1} 批处理错误:`, batchError);
+                        errorCount += batchIds.length;
+                    }
+                }
+                
+                let message = '';
+                if (successCount > 0 && errorCount === 0) {
+                    message = `成功删除 ${successCount} 条记录`;
+                } else if (successCount > 0 && errorCount > 0) {
+                    message = `删除完成！成功: ${successCount} 条，失败: ${errorCount} 条`;
+                } else {
+                    message = `删除失败，所有 ${errorCount} 条记录都未能删除`;
+                }
+                
+                alert(message);
+                elements.batchDeleteConfirmModal.classList.remove('show');
+                
+                // 清除选中状态
+                switch(type) {
+                    case 'users':
+                        selectedUsers.clear();
+                        break;
+                    case 'friendships':
+                        selectedFriendships.clear();
+                        break;
+                    case 'messages':
+                        selectedMessages.clear();
+                        break;
+                }
+                
+                // 刷新数据
+                loadStats();
+                switch(type) {
+                    case 'users':
+                        loadUsersData();
+                        loadAllUsers();
+                        break;
+                    case 'friendships':
+                        loadFriendshipsData();
+                        break;
+                    case 'messages':
+                        loadMessagesData();
+                        break;
+                }
+                
+            } catch (error) {
+                console.error('批量删除错误:', error);
+                alert('批量删除失败: ' + error.message);
+            } finally {
+                // 恢复按钮状态
+                elements.confirmBatchDelete.disabled = false;
+                elements.confirmBatchDelete.textContent = '确认删除';
+            }
+        }
+        
+        // 确认删除项目
+        function confirmDeleteItem(type, id, name) {
+            currentDeleteItem = { type, id };
+            
+            let message = '';
+            switch(type) {
+                case 'user':
+                    message = `确定要删除用户 "${name}" 吗？此操作将同时删除该用户的好友关系和消息。`;
+                    break;
+                case 'friendship':
+                    message = `确定要删除这条好友关系吗？`;
+                    break;
+                case 'message':
+                    message = `确定要删除这条消息吗？`;
+                    break;
+            }
+            
+            elements.deleteConfirmMessage.textContent = message;
+            elements.deleteConfirmModal.classList.add('show');
+        }
+        
+        // 加载好友关系数据
+        async function loadFriendshipsData() {
+            if (!supabase) return;
+            
+            try {
+                elements.friendshipsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="loading-container">
+                                <div class="loading-spinner"></div>
+                                <div>正在加载好友关系数据...</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                
+                let query = supabase
+                    .from('friends')
+                    .select('*', { count: 'exact' });
+                
+                const searchTerm = elements.friendshipSearch.value.trim();
+                if (searchTerm) {
+                    const { data: users } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .ilike('username', `%${searchTerm}%`);
+                    
+                    if (users && users.length > 0) {
+                        const userIds = users.map(u => u.id);
+                        query = query.in('user_id', userIds);
+                    } else {
+                        query = query.eq('user_id', 'no-match');
+                    }
+                }
+                
+                query = query.order(friendshipsSortState.field, { 
+                    ascending: friendshipsSortState.order === 'asc' 
+                });
+                
+                const from = (currentFriendshipsPage - 1) * itemsPerPage;
+                const to = from + itemsPerPage - 1;
+                query = query.range(from, to);
+                
+                const { data, error, count } = await query;
+                
+                if (error) throw error;
+                
+                elements.friendshipsTableBody.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach(friendship => {
+                        const isChecked = selectedFriendships.has(friendship.id);
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="checkbox-cell">
+                                <input type="checkbox" class="friendship-checkbox" data-id="${friendship.id}" ${isChecked ? 'checked' : ''}>
+                            </td>
+                            <td>${getUserAvatar(friendship.user_id)}</td>
+                            <td>${getUserAvatar(friendship.friend_id)}</td>
+                            <td>${friendship.status || 'N/A'}</td>
+                            <td>${formatDate(friendship.created_at)}</td>
+                            <td>
+                                <button class="action-btn delete" onclick="confirmDeleteItem('friendship', '${friendship.id}', '好友关系')">删除</button>
+                            </td>
+                        `;
+                        elements.friendshipsTableBody.appendChild(row);
+                    });
+                    
+                    document.querySelectorAll('.friendship-checkbox').forEach(checkbox => {
+                        checkbox.addEventListener('change', function() {
+                            const friendshipId = this.getAttribute('data-id');
+                            if (this.checked) {
+                                selectedFriendships.add(friendshipId);
+                            } else {
+                                selectedFriendships.delete(friendshipId);
+                            }
+                            updateSelectedCount('friendships');
+                        });
+                    });
+                } else {
+                    elements.friendshipsTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="6" class="no-data">没有找到好友关系数据</td>
+                        </tr>
+                    `;
+                }
+                
+                updatePagination(elements.friendshipsPagination, currentFriendshipsPage, count, 'friendships');
+                updateSelectAllCheckbox('friendships');
+                
+            } catch (error) {
+                console.error('加载好友关系数据错误:', error);
+                elements.friendshipsTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="no-data">加载好友关系数据失败</td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // 加载消息数据
+        async function loadMessagesData() {
+            if (!supabase) return;
+            
+            try {
+                elements.messagesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8">
+                            <div class="loading-container">
+                                <div class="loading-spinner"></div>
+                                <div>正在加载消息数据...</div>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                
+                let query = supabase
+                    .from('private_messages')
+                    .select('*', { count: 'exact' });
+                
+                const searchTerm = elements.messageSearch.value.trim();
+                if (searchTerm) {
+                    const { data: users } = await supabase
+                        .from('profiles')
+                        .select('id')
+                        .ilike('username', `%${searchTerm}%`);
+                    
+                    if (users && users.length > 0) {
+                        const userIds = users.map(u => u.id);
+                        query = query.or(`sender_id.in.(${userIds.join(',')}),receiver_id.in.(${userIds.join(',')}),content.ilike.%${searchTerm}%`);
+                    } else {
+                        query = query.ilike('content', `%${searchTerm}%`);
+                    }
+                }
+                
+                query = query.order(messagesSortState.field, { 
+                    ascending: messagesSortState.order === 'asc' 
+                });
+                
+                const from = (currentMessagesPage - 1) * itemsPerPage;
+                const to = from + itemsPerPage - 1;
+                query = query.range(from, to);
+                
+                const { data, error, count } = await query;
+                
+                if (error) throw error;
+                
+                elements.messagesTableBody.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach(message => {
+                        const isChecked = selectedMessages.has(message.id);
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td class="checkbox-cell">
+                                <input type="checkbox" class="message-checkbox" data-id="${message.id}" ${isChecked ? 'checked' : ''}>
+                            </td>
+                            <td>${getUserAvatar(message.sender_id)}</td>
+                            <td class="message-direction">
+                                <span class="arrow-icon">→</span>
+                            </td>
+                            <td>${getUserAvatar(message.receiver_id)}</td>
+                            <td>
+                                <div class="fixed-message">
+                                    ${formatMessageContent(message.content)}
+                                </div>
+                            </td>
+                            <td>${message.is_recalled ? '是' : '否'}</td>
+                            <td>${formatDate(message.created_at)}</td>
+                            <td>
+                                <button class="action-btn delete" onclick="confirmDeleteItem('message', '${message.id}', '消息')">删除</button>
+                            </td>
+                        `;
+                        elements.messagesTableBody.appendChild(row);
+                    });
+                    
+                    document.querySelectorAll('.message-checkbox').forEach(checkbox => {
+                        checkbox.addEventListener('change', function() {
+                            const messageId = this.getAttribute('data-id');
+                            if (this.checked) {
+                                selectedMessages.add(messageId);
+                            } else {
+                                selectedMessages.delete(messageId);
+                            }
+                            updateSelectedCount('messages');
+                        });
+                    });
+                } else {
+                    elements.messagesTableBody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="no-data">没有找到消息数据</td>
+                        </tr>
+                    `;
+                }
+                
+                updatePagination(elements.messagesPagination, currentMessagesPage, count, 'messages');
+                updateSelectAllCheckbox('messages');
+                
+            } catch (error) {
+                console.error('加载消息数据错误:', error);
+                elements.messagesTableBody.innerHTML = `
+                    <tr>
+                        <td colspan="8" class="no-data">加载消息数据失败</td>
+                    </tr>
+                `;
+            }
+        }
+        
+        // 格式化消息内容
+        function formatMessageContent(content) {
+            if (!content) return '';
+            
+            const imgRegex = /(https?:\/\/[^\s]+\.(?:jpg|jpeg|png|gif|webp|bmp|svg)(?:\?[^\s]*)?)/gi;
+            let processedContent = escapeHtml(content);
+            
+            const imgMatches = content.match(imgRegex);
+            if (imgMatches && imgMatches.length === 1 && content.trim() === imgMatches[0]) {
+                return `<div class="message-content"><img src="${content}" class="message-image" onerror="this.style.display='none'"></div>`;
+            }
+            
+            const parts = processedContent.split(imgRegex);
+            let result = '<div class="message-content">';
+            
+            for (let i = 0; i < parts.length; i++) {
+                if (i % 2 === 1) {
+                    result += `<img src="${parts[i]}" class="message-image" onerror="this.style.display='none'">`;
+                } else {
+                    result += parts[i];
+                }
+            }
+            
+            result += '</div>';
+            return result;
+        }
+        
+        // 初始化网络图
+        async function initializeNetworkGraph() {
+            if (!supabase) return;
+            
+            try {
+                elements.networkGraph.innerHTML = `
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <div>正在加载关系网络图...</div>
+                    </div>
+                `;
+                
+                const [usersResponse, friendshipsResponse] = await Promise.all([
+                    supabase.from('profiles').select('id, username, friend_code, avatar_url, created_at'),
+                    supabase.from('friends').select('user_id, friend_id, status, created_at')
+                ]);
+                
+                if (usersResponse.error) throw usersResponse.error;
+                if (friendshipsResponse.error) throw friendshipsResponse.error;
+                
+                const users = usersResponse.data;
+                const friendships = friendshipsResponse.data;
+                
+                graphData = {
+                    nodes: users.map(user => ({
+                        id: user.id,
+                        name: user.username,
+                        friend_code: user.friend_code,
+                        avatar_url: user.avatar_url,
+                        created_at: user.created_at,
+                        group: Math.floor(Math.random() * 10)
+                    })),
+                    links: friendships.map(friendship => ({
+                        source: friendship.user_id,
+                        target: friendship.friend_id,
+                        status: friendship.status,
+                        created_at: friendship.created_at
+                    }))
+                };
+                
+                calculateNodeDegrees();
+                updateGraphStats();
+                renderNetworkGraph();
+                
+            } catch (error) {
+                console.error('初始化网络图错误:', error);
+                elements.networkGraph.innerHTML = `
+                    <div class="no-data">加载关系网络图失败</div>
+                `;
+            }
+        }
+        
+        // 计算节点度数
+        function calculateNodeDegrees() {
+            graphData.nodes.forEach(node => {
+                node.degree = 0;
+            });
+            
+            graphData.links.forEach(link => {
+                const sourceNode = graphData.nodes.find(node => node.id === link.source);
+                const targetNode = graphData.nodes.find(node => node.id === link.target);
+                
+                if (sourceNode) sourceNode.degree++;
+                if (targetNode) targetNode.degree++;
+            });
+        }
+        
+        // 更新图表统计
+        function updateGraphStats() {
+            elements.graphNodeCount.textContent = graphData.nodes.length;
+            elements.graphLinkCount.textContent = graphData.links.length;
+            
+            const isolatedNodes = graphData.nodes.filter(node => node.degree === 0);
+            elements.graphIsolatedCount.textContent = isolatedNodes.length;
+            
+            const largestComponentSize = calculateLargestComponent();
+            elements.graphConnectedCount.textContent = largestComponentSize;
+            
+            updateInfoPanel();
+        }
+        
+        // 计算最大连接组件
+        function calculateLargestComponent() {
+            const visited = new Set();
+            let maxSize = 0;
+            
+            graphData.nodes.forEach(node => {
+                if (!visited.has(node.id)) {
+                    const componentSize = bfs(node.id, visited);
+                    maxSize = Math.max(maxSize, componentSize);
+                }
+            });
+            
+            return maxSize;
+        }
+        
+        // 广度优先搜索
+        function bfs(startId, visited) {
+            const queue = [startId];
+            visited.add(startId);
+            let size = 0;
+            
+            while (queue.length > 0) {
+                const currentId = queue.shift();
+                size++;
+                
+                graphData.links.forEach(link => {
+                    if (link.source === currentId && !visited.has(link.target)) {
+                        visited.add(link.target);
+                        queue.push(link.target);
+                    } else if (link.target === currentId && !visited.has(link.source)) {
+                        visited.add(link.source);
+                        queue.push(link.source);
+                    }
+                });
+            }
+            
+            return size;
+        }
+        
+        // 更新信息面板
+        function updateInfoPanel() {
+            elements.infoTotalUsers.textContent = graphData.nodes.length;
+            elements.infoTotalRelationships.textContent = graphData.links.length;
+            
+            const n = graphData.nodes.length;
+            const possibleLinks = n * (n - 1) / 2;
+            const density = possibleLinks > 0 ? (graphData.links.length / possibleLinks).toFixed(4) : 0;
+            elements.infoNetworkDensity.textContent = density;
+            
+            const degrees = graphData.nodes.map(node => node.degree);
+            const averageDegree = degrees.length > 0 ? 
+                (degrees.reduce((a, b) => a + b, 0) / degrees.length).toFixed(2) : 0;
+            const maxDegree = degrees.length > 0 ? Math.max(...degrees) : 0;
+            
+            elements.infoAverageDegree.textContent = averageDegree;
+            elements.infoMaxDegree.textContent = maxDegree;
+        }
+        
+        // 渲染网络图
+        function renderNetworkGraph() {
+            elements.networkGraph.innerHTML = '';
+            
+            const width = elements.networkGraph.clientWidth;
+            const height = elements.networkGraph.clientHeight;
+            
+            svg = d3.select('#networkGraph')
+                .append('svg')
+                .attr('width', width)
+                .attr('height', height);
+            
+            zoom = d3.zoom()
+                .scaleExtent([0.1, 4])
+                .on('zoom', (event) => {
+                    container.attr('transform', event.transform);
+                });
+            
+            svg.call(zoom);
+            
+            const container = svg.append('g');
+            
+            const link = container.append('g')
+                .attr('class', 'links')
+                .selectAll('line')
+                .data(graphData.links)
+                .enter()
+                .append('line')
+                .attr('class', 'graph-link')
+                .attr('stroke-width', 1);
+            
+            const nodeGroup = container.append('g')
+                .attr('class', 'nodes')
+                .selectAll('g')
+                .data(graphData.nodes)
+                .enter()
+                .append('g')
+                .attr('class', 'graph-node')
+                .call(d3.drag()
+                    .on('start', dragstarted)
+                    .on('drag', dragged)
+                    .on('end', dragended));
+            
+            const clipPath = nodeGroup.append('clipPath')
+                .attr('id', (d, i) => `clip-${i}`);
+            
+            clipPath.append('circle')
+                .attr('r', d => elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15);
+            
+            nodeGroup.append('image')
+                .attr('xlink:href', d => {
+                    if (d.avatar_url && isValidUrl(d.avatar_url)) {
+                        return d.avatar_url;
+                    } else {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 30;
+                        canvas.height = 30;
+                        const ctx = canvas.getContext('2d');
+                        const colors = ['#4a6ee0', '#4CAF50', '#FF9800', '#9C27B0', '#F44336', '#00BCD4'];
+                        const color = colors[Math.floor(Math.random() * colors.length)];
+                        ctx.beginPath();
+                        ctx.arc(15, 15, 15, 0, 2 * Math.PI);
+                        ctx.fillStyle = color;
+                        ctx.fill();
+                        ctx.fillStyle = 'white';
+                        ctx.font = '16px Arial';
+                        ctx.textAlign = 'center';
+                        ctx.textBaseline = 'middle';
+                        ctx.fillText(d.name.charAt(0).toUpperCase(), 15, 15);
+                        return canvas.toDataURL();
+                    }
+                })
+                .attr('x', d => -(elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15))
+                .attr('y', d => -(elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15))
+                .attr('width', d => (elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(20 + d.degree * 3, 50) : 30))
+                .attr('height', d => (elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(20 + d.degree * 3, 50) : 30))
+                .attr('clip-path', (d, i) => `url(#clip-${i})`);
+            
+            nodeGroup.append('circle')
+                .attr('r', d => elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15)
+                .attr('fill', 'none')
+                .attr('stroke', '#4a6ee0')
+                .attr('stroke-width', 2);
+            
+            const label = container.append('g')
+                .attr('class', 'labels')
+                .selectAll('text')
+                .data(graphData.nodes)
+                .enter()
+                .append('text')
+                .attr('class', 'graph-label')
+                .attr('dx', 12)
+                .attr('dy', '.35em')
+                .text(d => d.name)
+                .style('display', elements.labelFilter.value === 'all' ? 'block' : 'none');
+            
+            tooltip = d3.select('body')
+                .append('div')
+                .attr('class', 'graph-tooltip')
+                .style('opacity', 0);
+            
+            nodeGroup.on('mouseover', function(event, d) {
+                nodeGroup.classed('highlighted', n => n.id === d.id);
+                link.classed('highlighted', l => l.source.id === d.id || l.target.id === d.id);
+                
+                tooltip.transition()
+                    .duration(200)
+                    .style('opacity', .9);
+                tooltip.html(`
+                    <div><strong>${d.name}</strong></div>
+                    <div>好友码: ${d.friend_code || '无'}</div>
+                    <div>好友数: ${d.degree}</div>
+                    <div>注册时间: ${formatDate(d.created_at)}</div>
+                `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 28) + 'px');
+            })
+            .on('mouseout', function() {
+                nodeGroup.classed('highlighted', false);
+                link.classed('highlighted', false);
+                
+                tooltip.transition()
+                    .duration(500)
+                    .style('opacity', 0);
+            });
+            
+            nodeGroup.on('click', function(event, d) {
+                console.log('点击节点:', d);
+            });
+            
+            simulation = d3.forceSimulation(graphData.nodes)
+                .force('link', d3.forceLink(graphData.links).id(d => d.id).distance(100))
+                .force('charge', d3.forceManyBody().strength(-300))
+                .force('center', d3.forceCenter(width / 2, height / 2))
+                .force('collision', d3.forceCollide().radius(d => (elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15) + 5))
+                .force('x', d3.forceX(width / 2).strength(0.1))
+                .force('y', d3.forceY(height / 2).strength(0.1));
+            
+            simulation.on('tick', () => {
+                link
+                    .attr('x1', d => Math.max(10, Math.min(width - 10, d.source.x)))
+                    .attr('y1', d => Math.max(10, Math.min(height - 10, d.source.y)))
+                    .attr('x2', d => Math.max(10, Math.min(width - 10, d.target.x)))
+                    .attr('y2', d => Math.max(10, Math.min(height - 10, d.target.y)));
+                
+                nodeGroup
+                    .attr('transform', d => `translate(${Math.max(10, Math.min(width - 10, d.x))}, ${Math.max(10, Math.min(height - 10, d.y))})`);
+                
+                label
+                    .attr('x', d => Math.max(10, Math.min(width - 10, d.x)))
+                    .attr('y', d => Math.max(10, Math.min(height - 10, d.y)));
+            });
+            
+            function dragstarted(event, d) {
+                if (!event.active) simulation.alphaTarget(0.3).restart();
+                d.fx = d.x;
+                d.fy = d.y;
+            }
+            
+            function dragged(event, d) {
+                d.fx = Math.max(10, Math.min(width - 10, event.x));
+                d.fy = Math.max(10, Math.min(height - 10, event.y));
+            }
+            
+            function dragended(event, d) {
+                if (!event.active) simulation.alphaTarget(0);
+                d.fx = null;
+                d.fy = null;
+            }
+        }
+        
+        // 设置图表过滤器
+        function setupGraphFilters() {
+            elements.nodeSizeFilter.addEventListener('change', updateNodeSizes);
+            elements.layoutFilter.addEventListener('change', updateLayout);
+            elements.labelFilter.addEventListener('change', updateLabels);
+        }
+        
+        // 更新节点大小
+        function updateNodeSizes() {
+            if (!svg) return;
+            
+            d3.selectAll('.graph-node clipPath circle')
+                .attr('r', d => elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15);
+            
+            d3.selectAll('.graph-node image')
+                .attr('x', d => -(elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15))
+                .attr('y', d => -(elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15))
+                .attr('width', d => (elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(20 + d.degree * 3, 50) : 30))
+                .attr('height', d => (elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(20 + d.degree * 3, 50) : 30));
+            
+            d3.selectAll('.graph-node circle')
+                .attr('r', d => elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15);
+            
+            if (simulation) {
+                simulation.force('collision', d3.forceCollide().radius(d => (elements.nodeSizeFilter.value === 'degree' ? 
+                    Math.min(10 + d.degree * 1.5, 25) : 15) + 5))
+                    .alpha(0.3)
+                    .restart();
+            }
+        }
+        
+        // 更新布局
+        function updateLayout() {
+            if (!simulation) return;
+            
+            switch(elements.layoutFilter.value) {
+                case 'force':
+                    simulation
+                        .force('charge', d3.forceManyBody().strength(-300))
+                        .force('center', d3.forceCenter(elements.networkGraph.clientWidth / 2, elements.networkGraph.clientHeight / 2))
+                        .alpha(0.3)
+                        .restart();
+                    break;
+                case 'radial':
+                    simulation
+                        .force('charge', d3.forceManyBody().strength(-100))
+                        .force('center', d3.forceRadial(200, elements.networkGraph.clientWidth / 2, elements.networkGraph.clientHeight / 2))
+                        .alpha(0.3)
+                        .restart();
+                    break;
+                case 'circular':
+                    const radius = Math.min(elements.networkGraph.clientWidth, elements.networkGraph.clientHeight) / 3;
+                    const angle = 2 * Math.PI / graphData.nodes.length;
+                    
+                    graphData.nodes.forEach((node, i) => {
+                        node.fx = elements.networkGraph.clientWidth / 2 + radius * Math.cos(i * angle);
+                        node.fy = elements.networkGraph.clientHeight / 2 + radius * Math.sin(i * angle);
+                    });
+                    
+                    simulation.alpha(0.3).restart();
+                    break;
+            }
+        }
+        
+        // 更新标签
+        function updateLabels() {
+            if (!svg) return;
+            
+            switch(elements.labelFilter.value) {
+                case 'all':
+                    d3.selectAll('.graph-label').style('display', 'block');
+                    break;
+                case 'selected':
+                    d3.selectAll('.graph-label').style('display', 'none');
+                    break;
+                case 'none':
+                    d3.selectAll('.graph-label').style('display', 'none');
+                    break;
+            }
+        }
+        
+        // 根据搜索过滤图表
+        function filterGraphBySearch() {
+            const searchTerm = elements.graphSearch.value.trim().toLowerCase();
+            
+            if (!searchTerm) {
+                d3.selectAll('.graph-node').style('opacity', 1);
+                d3.selectAll('.graph-link').style('opacity', 0.6);
+                d3.selectAll('.graph-label').style('opacity', 1);
+                return;
+            }
+            
+            d3.selectAll('.graph-node').style('opacity', function(d) {
+                return d.name.toLowerCase().includes(searchTerm) ? 1 : 0.1;
+            });
+            
+            d3.selectAll('.graph-label').style('opacity', function(d) {
+                return d.name.toLowerCase().includes(searchTerm) ? 1 : 0.1;
+            });
+            
+            d3.selectAll('.graph-link').style('opacity', function(d) {
+                return (
+                    d.source.name.toLowerCase().includes(searchTerm) ||
+                    d.target.name.toLowerCase().includes(searchTerm)
+                ) ? 1 : 0.1;
+            });
+        }
+        
+        // 切换信息面板可见性
+        function toggleInfoPanelVisibility() {
+            if (isInfoPanelCollapsed) {
+                elements.infoPanelContent.style.display = 'block';
+                elements.toggleInfoPanel.textContent = '折叠';
+                isInfoPanelCollapsed = false;
+            } else {
+                elements.infoPanelContent.style.display = 'none';
+                elements.toggleInfoPanel.textContent = '展开';
+                isInfoPanelCollapsed = true;
+            }
+        }
+        
+        // 更新分页
+        function updatePagination(paginationElement, currentPage, totalCount, type) {
+            if (!totalCount || totalCount <= itemsPerPage) {
+                paginationElement.innerHTML = '';
+                return;
+            }
+            
+            const totalPages = Math.ceil(totalCount / itemsPerPage);
+            let paginationHTML = '';
+            
+            if (currentPage > 1) {
+                paginationHTML += `<button class="page-btn" onclick="changePage('${type}', ${currentPage - 1})">上一页</button>`;
+            }
+            
+            for (let i = 1; i <= totalPages; i++) {
+                if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+                    paginationHTML += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="changePage('${type}', ${i})">${i}</button>`;
+                } else if (i === currentPage - 3 || i === currentPage + 3) {
+                    paginationHTML += '<span>...</span>';
+                }
+            }
+            
+            if (currentPage < totalPages) {
+                paginationHTML += `<button class="page-btn" onclick="changePage('${type}', ${currentPage + 1})">下一页</button>`;
+            }
+            
+            paginationElement.innerHTML = paginationHTML;
+        }
+        
+        // 更改页面
+        function changePage(type, page) {
+            switch(type) {
+                case 'users':
+                    currentUsersPage = page;
+                    loadUsersData();
+                    break;
+                case 'friendships':
+                    currentFriendshipsPage = page;
+                    loadFriendshipsData();
+                    break;
+                case 'messages':
+                    currentMessagesPage = page;
+                    loadMessagesData();
+                    break;
+            }
+        }
+        
+        // 格式化日期
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN');
+        }
+        
+        // 转义HTML
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        // 发送通知相关函数
+        function openSendNotificationModal() {
+            if (!isOfficialLoggedIn) {
+                alert('请先登录官方账号');
+                return;
+            }
+            
+            updateNotificationStats();
+            elements.sendNotificationModal.classList.add('show');
+            elements.notificationContent.value = '';
+            
+            // 加载通知用户列表
+            loadNotificationUsers();
+        }
+        
+        function closeSendNotificationModal() {
+            elements.sendNotificationModal.classList.remove('show');
+        }
+        
+        function updateNotificationStats() {
+            const sendTo = document.querySelector('input[name="sendTo"]:checked').value;
+            
+            // 显示或隐藏自定义用户选择区域
+            if (sendTo === 'custom') {
+                elements.customUserSelection.style.display = 'block';
+            } else {
+                elements.customUserSelection.style.display = 'none';
+            }
+            
+            let recipientCount = 0;
+            
+            if (sendTo === 'selected') {
+                recipientCount = selectedUsers.size;
+                elements.recipientCount.textContent = recipientCount;
+                elements.selectedUsersCount.textContent = selectedUsers.size;
+            } else if (sendTo === 'all') {
+                // 获取总用户数
+                const totalUsers = parseInt(elements.totalUsers.textContent) || 0;
+                recipientCount = totalUsers;
+                elements.recipientCount.textContent = recipientCount;
+                elements.selectedUsersCount.textContent = selectedUsers.size;
+            } else if (sendTo === 'custom') {
+                recipientCount = notificationSelectedUsers.size;
+                elements.recipientCount.textContent = recipientCount;
+                elements.selectedUsersCount.textContent = selectedUsers.size;
+                elements.customSelectedCount.textContent = `已选择 ${recipientCount} 个用户`;
+            }
+        }
+        
+        // 加载通知用户列表
+        async function loadNotificationUsers() {
+            if (!supabase) return;
+            
+            try {
+                elements.notificationUsersList.innerHTML = `
+                    <div class="loading-container">
+                        <div class="loading-spinner"></div>
+                        <div>正在加载用户列表...</div>
+                    </div>
+                `;
+                
+                let query = supabase
+                    .from('profiles')
+                    .select('id, username, friend_code, avatar_url, created_at');
+                
+                const searchTerm = elements.notificationUserSearch.value.trim();
+                if (searchTerm) {
+                    query = query.ilike('username', `%${searchTerm}%`);
+                }
+                
+                query = query.order('created_at', { ascending: false });
+                
+                const { data, error } = await query;
+                
+                if (error) throw error;
+                
+                elements.notificationUsersList.innerHTML = '';
+                
+                if (data && data.length > 0) {
+                    data.forEach(user => {
+                        const isChecked = notificationSelectedUsers.has(user.id);
+                        const username = user.username || `用户(${user.id.substring(0, 8)}...)`;
+                        const initial = username.charAt(0).toUpperCase();
+                        const avatarUrl = user.avatar_url;
+                        
+                        let avatarHtml = '';
+                        if (avatarUrl && isValidUrl(avatarUrl)) {
+                            avatarHtml = `
+                                <img src="${avatarUrl}" class="user-avatar-img" alt="${username}" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'">
+                                <div class="user-avatar" style="display: none">${initial}</div>
+                            `;
+                        } else {
+                            avatarHtml = `<div class="user-avatar">${initial}</div>`;
+                        }
+                        
+                        const userItem = document.createElement('div');
+                        userItem.className = `notification-user-item ${isChecked ? 'selected' : ''}`;
+                        userItem.innerHTML = `
+                            <input type="checkbox" class="notification-user-checkbox" data-id="${user.id}" ${isChecked ? 'checked' : ''}>
+                            <div class="user-info">
+                                ${avatarHtml}
+                                ${username}
+                            </div>
+                        `;
+                        
+                        elements.notificationUsersList.appendChild(userItem);
+                        
+                        // 添加复选框事件监听
+                        const checkbox = userItem.querySelector('.notification-user-checkbox');
+                        checkbox.addEventListener('change', function() {
+                            const userId = this.getAttribute('data-id');
+                            if (this.checked) {
+                                notificationSelectedUsers.add(userId);
+                                userItem.classList.add('selected');
+                            } else {
+                                notificationSelectedUsers.delete(userId);
+                                userItem.classList.remove('selected');
+                            }
+                            updateNotificationStats();
+                        });
+                    });
+                } else {
+                    elements.notificationUsersList.innerHTML = `
+                        <div class="no-data">没有找到用户</div>
+                    `;
+                }
+                
+            } catch (error) {
+                console.error('加载通知用户列表错误:', error);
+                elements.notificationUsersList.innerHTML = `
+                    <div class="no-data">加载用户列表失败</div>
+                `;
+            }
+        }
+        
+        // 全选通知用户
+        function selectAllNotificationUsers() {
+            document.querySelectorAll('.notification-user-checkbox').forEach(checkbox => {
+                checkbox.checked = true;
+                const userId = checkbox.getAttribute('data-id');
+                notificationSelectedUsers.add(userId);
+                checkbox.parentElement.classList.add('selected');
+            });
+            updateNotificationStats();
+        }
+        
+        // 取消选择所有通知用户
+        function selectNoneNotificationUsers() {
+            document.querySelectorAll('.notification-user-checkbox').forEach(checkbox => {
+                checkbox.checked = false;
+                const userId = checkbox.getAttribute('data-id');
+                notificationSelectedUsers.delete(userId);
+                checkbox.parentElement.classList.remove('selected');
+            });
+            updateNotificationStats();
+        }
+        
+        async function sendNotifications() {
+            if (!isOfficialLoggedIn) {
+                alert('请先登录官方账号');
+                return;
+            }
+            
+            const content = elements.notificationContent.value.trim();
+            if (!content) {
+                alert('请输入通知内容');
+                return;
+            }
+            
+            const sendTo = document.querySelector('input[name="sendTo"]:checked').value;
+            
+            try {
+                let userIds = [];
+                
+                if (sendTo === 'selected') {
+                    userIds = Array.from(selectedUsers);
+                } else if (sendTo === 'all') {
+                    // 获取所有用户ID
+                    const { data, error } = await supabase
+                        .from('profiles')
+                        .select('id');
+                    
+                    if (error) throw error;
+                    
+                    userIds = data.map(user => user.id);
+                } else if (sendTo === 'custom') {
+                    userIds = Array.from(notificationSelectedUsers);
+                }
+                
+                if (userIds.length === 0) {
+                    alert('没有可发送的用户');
+                    return;
+                }
+                
+                // 确认发送
+                const confirmSend = confirm(`确定要向 ${userIds.length} 个用户发送通知吗？`);
+                if (!confirmSend) return;
+                
+                elements.confirmSendNotification.disabled = true;
+                elements.confirmSendNotification.textContent = '发送中...';
+                
+                // 批量发送消息
+                const messages = userIds.map(userId => ({
+                    sender_id: officialSession.id,
+                    receiver_id: userId,
+                    content: content,
+                    is_recalled: false,
+                    created_at: new Date().toISOString()
+                }));
+                
+                // 分批发送以避免超限
+                const batchSize = 50;
+                let successCount = 0;
+                let errorCount = 0;
+                
+                for (let i = 0; i < messages.length; i += batchSize) {
+                    const batch = messages.slice(i, i + batchSize);
+                    
+                    const { error } = await supabase
+                        .from('private_messages')
+                        .insert(batch);
+                    
+                    if (error) {
+                        console.error('批量发送消息错误:', error);
+                        errorCount += batch.length;
+                    } else {
+                        successCount += batch.length;
+                    }
+                    
+                    // 更新进度
+                    const progress = Math.min(i + batchSize, messages.length);
+                    elements.confirmSendNotification.textContent = `发送中... ${progress}/${messages.length}`;
+                }
+                
+                alert(`通知发送完成！\n成功: ${successCount} 条\n失败: ${errorCount} 条`);
+                
+                closeSendNotificationModal();
+                
+            } catch (error) {
+                console.error('发送通知错误:', error);
+                alert('发送通知失败: ' + error.message);
+            } finally {
+                elements.confirmSendNotification.disabled = false;
+                elements.confirmSendNotification.textContent = '发送通知';
+            }
+        }
+        
+        // 初始化系统
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
